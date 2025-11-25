@@ -1,0 +1,24 @@
+import { Router } from 'express';
+import * as orderController from '../controllers/order.controller';
+
+const router = Router();
+
+/**
+ * Routes pour les commandes fournisseurs
+ */
+
+// CRUD Commandes
+router.post('/orders', orderController.createOrder);
+router.get('/orders', orderController.getOrders);
+router.get('/orders/:id', orderController.getOrderById);
+router.put('/orders/:id', orderController.updateOrder);
+router.delete('/orders/:id', orderController.deleteOrder);
+
+// Rentabilité
+router.get('/orders/profitability/all', orderController.getAllOrdersProfitability);
+router.get('/orders/:id/profitability', orderController.getOrderProfitability);
+
+// Stats
+router.get('/orders/stats/dashboard', orderController.getDashboardStats);
+
+export default router;

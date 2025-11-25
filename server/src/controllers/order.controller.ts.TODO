@@ -1,0 +1,152 @@
+import { Request, Response, NextFunction } from 'express';
+import { supplierOrderService, productService } from '../services/order.service';
+import type { CreateSupplierOrderDto, UpdateSupplierOrderDto } from '../types/order';
+
+/**
+ * Contrôleur pour la gestion des commandes fournisseurs
+ */
+
+/**
+ * Créer une nouvelle commande fournisseur
+ * POST /api/orders
+ */
+export async function createOrder(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = 1; // TODO: Récupérer depuis l'authentification
+    const data: CreateSupplierOrderDto = req.body;
+
+    // Validation basique
+    if (!data.name || !data.supplier || !data.purchaseDate || data.totalCost === undefined) {
+      return res.status(400).json({
+        error: 'Missing required fields: name, supplier, purchaseDate, totalCost',
+      });
+    }
+
+    const order = await supplierOrderService.createOrder(userId, data);
+
+    res.status(201).json(order);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Récupérer toutes les commandes de l'utilisateur
+ * GET /api/orders
+ */
+export async function getOrders(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = 1; // TODO: Récupérer depuis l'authentification
+
+    const orders = await supplierOrderService.getOrdersByUserId(userId);
+
+    res.json(orders);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Récupérer une commande par son ID
+ * GET /api/orders/:id
+ */
+export async function getOrderById(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = 1; // TODO: Récupérer depuis l'authentification
+    const { id } = req.params;
+
+    const order = await supplierOrderService.getOrderById(id, userId);
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    res.json(order);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Mettre à jour une commande
+ * PUT /api/orders/:id
+ */
+export async function updateOrder(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = 1; // TODO: Récupérer depuis l'authentification
+    const { id } = req.params;
+    const data: UpdateSupplierOrderDto = req.body;
+
+    const order = await supplierOrderService.updateOrder(id, userId, data);
+
+    res.json(order);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Supprimer une commande
+ * DELETE /api/orders/:id
+ */
+export async function deleteOrder(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = 1; // TODO: Récupérer depuis l'authentification
+    const { id } = req.params;
+
+    await supplierOrderService.deleteOrder(id, userId);
+
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Récupérer la rentabilité d'une commande
+ * GET /api/orders/:id/profitability
+ */
+export async function getOrderProfitability(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = 1; // TODO: Récupérer depuis l'authentification
+    const { id } = req.params;
+
+    const profitability = await supplierOrderService.calculateOrderProfitability(id, userId);
+
+    res.json(profitability);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Récupérer la rentabilité de toutes les commandes
+ * GET /api/orders/profitability/all
+ */
+export async function getAllOrdersProfitability(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = 1; // TODO: Récupérer depuis l'authentification
+
+    const profitabilities = await supplierOrderService.getAllOrdersProfitability(userId);
+
+    res.json(profitabilities);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Récupérer les statistiques du dashboard
+ * GET /api/orders/stats/dashboard
+ */
+export async function getDashboardStats(req: Request, res: Response, next: NextFunction) {
+  try {
+    const userId = 1; // TODO: Récupérer depuis l'authentification
+
+    const stats = await supplierOrderService.getDashboardStats(userId);
+
+    res.json(stats);
+  } catch (error) {
+    next(error);
+  }
+}
