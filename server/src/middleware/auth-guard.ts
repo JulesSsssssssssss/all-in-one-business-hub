@@ -1,25 +1,38 @@
 import { Request, Response, NextFunction } from 'express';
+import { auth } from '../auth';
 import { CONSTANTS } from '../config/constants';
 
 /**
- * Middleware d'authentification (à implémenter avec Better Auth)
- * Pour le moment, on l'utilise pour les routes protégées
+ * Middleware d'authentification avec Better Auth
+ * Vérifie la session utilisateur via les cookies
  */
-export function authGuard(req: Request, res: Response, next: NextFunction) {
-  // Récupérer le token depuis les headers
-  const authHeader = req.headers.authorization;
-  const token = authHeader?.split(' ')[1];
+export async function authGuard(req: Request, res: Response, next: NextFunction) {
+  try {
+    // Better Auth vérifie automatiquement la session via les cookies
+    const session = await auth.api.getSession({ headers: req.headers });
 
-  if (!token) {
+    if (!session || !session.user) {
+      return res.status(CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        error: 'Non authentifié',
+        statusCode: CONSTANTS.HTTP_STATUS.UNAUTHORIZED,
+      });
+    }
+
+    // Ajouter l'utilisateur à la requête
+    (req as any).user = {
+      id: session.user.id,
+      email: session.user.email,
+      name: session.user.name,
+    };
+
+    next();
+  } catch (error) {
+    console.error('Auth guard error:', error);
     return res.status(CONSTANTS.HTTP_STATUS.UNAUTHORIZED).json({
       success: false,
-      error: CONSTANTS.ERRORS.UNAUTHORIZED,
+      error: 'Erreur d\'authentification',
       statusCode: CONSTANTS.HTTP_STATUS.UNAUTHORIZED,
     });
   }
-
-  // Pour le moment, on accepte le token - à améliorer avec JWT
-  (req as any).userId = token; // Placeholder
-
-  next();
 }

@@ -1,77 +1,47 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Plus, Package, TrendingUp, TrendingDown, DollarSign, Calendar, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import type { SupplierOrder } from '@/types/order';
+import { useSupplierOrders, type SupplierOrder } from '@/hooks/useSupplierOrders';
 
 export default function CommandesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [orders, setOrders] = useState<SupplierOrder[]>([]);
+  
+  const { getOrders, loading, error } = useSupplierOrders();
 
-  // Données mock - à remplacer par des vraies données
-  const mockOrders: SupplierOrder[] = [
-    {
-      id: '1',
-      userId: 1,
-      name: 'Lot Nike - Alibaba Mars 2025',
-      supplier: 'Alibaba Express',
-      purchaseDate: '2025-03-15',
-      totalCost: 1500,
-      shippingCost: 150,
-      customsCost: 80,
-      otherFees: 20,
-      notes: 'Lot de 50 articles Nike',
-      status: 'active',
-      createdAt: '2025-03-15',
-      updatedAt: '2025-03-15',
-    },
-    {
-      id: '2',
-      userId: 1,
-      name: 'Vêtements Vintage - Vide Grenier',
-      supplier: 'Vide Grenier Paris 18',
-      purchaseDate: '2025-03-10',
-      totalCost: 250,
-      shippingCost: 0,
-      customsCost: 0,
-      otherFees: 0,
-      status: 'active',
-      createdAt: '2025-03-10',
-      updatedAt: '2025-03-10',
-    },
-    {
-      id: '3',
-      userId: 1,
-      name: 'Lot Adidas - DHgate',
-      supplier: 'DHgate Supplier',
-      purchaseDate: '2025-02-20',
-      totalCost: 800,
-      shippingCost: 100,
-      customsCost: 50,
-      otherFees: 10,
-      status: 'completed',
-      createdAt: '2025-02-20',
-      updatedAt: '2025-03-01',
-    },
-  ];
+  // Charger les commandes au montage du composant
+  useEffect(() => {
+    loadOrders();
+  }, [statusFilter]);
 
-  // Stats calculées
-  const stats = {
-    totalOrders: mockOrders.length,
-    activeOrders: mockOrders.filter(o => o.status === 'active').length,
-    totalInvested: mockOrders.reduce((sum, o) => sum + o.totalCost + o.shippingCost + o.customsCost + o.otherFees, 0),
+  const loadOrders = async () => {
+    try {
+      const filter = statusFilter === 'all' ? undefined : statusFilter;
+      const data = await getOrders(filter);
+      setOrders(data);
+    } catch (err) {
+      console.error('Erreur chargement commandes:', err);
+    }
   };
 
-  const filteredOrders = mockOrders.filter(order => {
+  // Stats calculées depuis les vraies données
+  const stats = {
+    totalOrders: orders.length,
+    activeOrders: orders.filter(o => o.status === 'active').length,
+    totalInvested: orders.reduce((sum, o) => sum + o.totalCost + o.shippingCost + o.customsCost + o.otherFees, 0),
+  };
+
+  const filteredOrders = orders.filter(order => {
     const matchesSearch = order.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          order.supplier.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
   const formatCurrency = (amount: number) => {
@@ -194,7 +164,23 @@ export default function CommandesPage() {
 
       {/* Orders List */}
       <div className="space-y-4">
-        {filteredOrders.length === 0 ? (
+        {loading && orders.length === 0 ? (
+          <Card className="bg-white border-gray-200">
+            <CardContent className="p-12 text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-kaki-7 mx-auto mb-4"></div>
+              <p className="text-gray-600">Chargement des commandes...</p>
+            </CardContent>
+          </Card>
+        ) : error ? (
+          <Card className="bg-red-50 border-red-200">
+            <CardContent className="p-12 text-center">
+              <p className="text-red-600 mb-4">Erreur : {error}</p>
+              <Button onClick={loadOrders} variant="outline">
+                Réessayer
+              </Button>
+            </CardContent>
+          </Card>
+        ) : filteredOrders.length === 0 ? (
           <Card className="bg-white border-gray-200">
             <CardContent className="p-12 text-center">
               <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -212,7 +198,7 @@ export default function CommandesPage() {
           </Card>
         ) : (
           filteredOrders.map((order) => (
-            <Link key={order.id} href={`/dashboard/commandes/${order.id}`}>
+            <Link key={order._id} href={`/dashboard/commandes/${order._id}`}>
               <Card className="bg-white border-gray-200 hover:border-kaki-6 hover:shadow-lg transition-all cursor-pointer">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">

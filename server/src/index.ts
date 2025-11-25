@@ -6,6 +6,8 @@ import mongoose from 'mongoose';
 import { connectToDatabase, connectMongooseToDatabase } from './db';
 import { authRouter } from './routes/auth.routes';
 import { healthRouter } from './routes/health.routes';
+import saleRoutes from './routes/sale.routes';
+import supplierOrderRoutes from './routes/supplier-order.routes';
 // import orderRoutes from './routes/order.routes'; // TODO: Réactiver après migration Mongoose
 import { errorHandler, notFoundHandler } from './middleware/error-handler';
 
@@ -26,6 +28,8 @@ app.use(express.urlencoded({ extended: true }));
 // ==================== ROUTES ====================
 app.use('/api/health', healthRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/sales', saleRoutes);
+app.use('/api/supplier-orders', supplierOrderRoutes);
 // app.use('/api', orderRoutes); // TODO: Réactiver après migration Mongoose
 
 // ==================== ERROR HANDLING ====================

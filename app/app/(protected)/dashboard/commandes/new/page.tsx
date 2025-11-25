@@ -8,12 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { CreateSupplierOrderDto } from '@/types/order';
+import { useSupplierOrders, type CreateSupplierOrderInput } from '@/hooks/useSupplierOrders';
 
 export default function NewCommandePage() {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formData, setFormData] = useState<CreateSupplierOrderDto>({
+  const { createOrder, loading } = useSupplierOrders();
+  const [formData, setFormData] = useState<CreateSupplierOrderInput>({
     name: '',
     supplier: '',
     purchaseDate: new Date().toISOString().split('T')[0],
@@ -23,6 +23,7 @@ export default function NewCommandePage() {
     otherFees: 0,
     notes: '',
   });
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -34,22 +35,17 @@ export default function NewCommandePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    setSubmitError(null);
 
     try {
-      // TODO: Appel API pour créer la commande
-      console.log('Creating order:', formData);
-      
-      // Simulation d'un délai
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Appel API pour créer la commande
+      await createOrder(formData);
       
       // Redirection vers la page des commandes
       router.push('/dashboard/commandes');
     } catch (error) {
       console.error('Error creating order:', error);
-      alert('Erreur lors de la création de la commande');
-    } finally {
-      setIsSubmitting(false);
+      setSubmitError(error instanceof Error ? error.message : 'Erreur lors de la création de la commande');
     }
   };
 
@@ -245,6 +241,15 @@ export default function NewCommandePage() {
           </CardContent>
         </Card>
 
+        {/* Error Message */}
+        {submitError && (
+          <Card className="bg-red-50 border-red-200">
+            <CardContent className="p-4">
+              <p className="text-red-600">{submitError}</p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Actions */}
         <div className="flex gap-4">
           <Link href="/dashboard/commandes" className="flex-1">
@@ -254,10 +259,10 @@ export default function NewCommandePage() {
           </Link>
           <Button
             type="submit"
-            disabled={isSubmitting}
+            disabled={loading}
             className="flex-1 bg-primary hover:bg-kaki-7 text-white"
           >
-            {isSubmitting ? (
+            {loading ? (
               <>
                 <span className="animate-spin mr-2">⏳</span>
                 Création...

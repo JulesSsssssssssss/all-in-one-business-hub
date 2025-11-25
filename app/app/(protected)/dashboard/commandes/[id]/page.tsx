@@ -1,88 +1,88 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, DollarSign, Package, TrendingUp, Edit, Trash2, Plus, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { SupplierOrder, Product } from '@/types/order';
-
-// Mock data - à remplacer par des vraies données
-const mockOrder: SupplierOrder & { products: Product[] } = {
-  id: '1',
-  userId: 1,
-  name: 'Lot Nike - Alibaba Mars 2025',
-  supplier: 'Alibaba Express',
-  purchaseDate: '2025-03-15',
-  totalCost: 1500,
-  shippingCost: 150,
-  customsCost: 80,
-  otherFees: 20,
-  notes: 'Lot de 50 articles Nike variés : baskets, vêtements, accessoires',
-  status: 'active',
-  createdAt: '2025-03-15',
-  updatedAt: '2025-03-15',
-  products: [
-    {
-      id: 'p1',
-      userId: 1,
-      supplierOrderId: '1',
-      name: 'Nike Air Max 90',
-      description: 'Baskets Nike Air Max 90 blanches, taille 42',
-      photos: [],
-      unitCost: 35,
-      salePrice: 80,
-      soldPrice: 75,
-      status: 'sold',
-      platform: 'Vinted',
-      listedDate: '2025-03-16',
-      soldDate: '2025-03-18',
-      createdAt: '2025-03-15',
-      updatedAt: '2025-03-18',
-    },
-    {
-      id: 'p2',
-      userId: 1,
-      supplierOrderId: '1',
-      name: 'Nike Hoodie',
-      description: 'Sweat à capuche Nike noir, taille M',
-      photos: [],
-      unitCost: 35,
-      salePrice: 50,
-      status: 'listed',
-      platform: 'Leboncoin',
-      listedDate: '2025-03-17',
-      createdAt: '2025-03-15',
-      updatedAt: '2025-03-17',
-    },
-    {
-      id: 'p3',
-      userId: 1,
-      supplierOrderId: '1',
-      name: 'Nike Cap',
-      description: 'Casquette Nike bleu marine',
-      photos: [],
-      unitCost: 35,
-      salePrice: 25,
-      status: 'in_stock',
-      createdAt: '2025-03-15',
-      updatedAt: '2025-03-15',
-    },
-  ],
-};
+import { useSupplierOrders, type SupplierOrder } from '@/hooks/useSupplierOrders';
+import { useSales, type Product } from '@/hooks/useSales';
 
 export default function CommandeDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const [order] = useState(mockOrder);
+  const { getOrderById, deleteOrder, loading: orderLoading, error: orderError } = useSupplierOrders();
+  const { getProductsBySupplierOrder, loading: productsLoading } = useSales();
+  
+  const [order, setOrder] = useState<SupplierOrder | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    loadData();
+  }, [params.id]);
+
+  const loadData = async () => {
+    try {
+      // Charger la commande
+      const orderData = await getOrderById(params.id);
+      setOrder(orderData);
+
+      // Charger les produits de cette commande
+      const productsData = await getProductsBySupplierOrder(params.id);
+      setProducts(productsData);
+    } catch (err) {
+      console.error('Erreur chargement données:', err);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette commande ?')) {
+      return;
+    }
+
+    try {
+      await deleteOrder(params.id);
+      router.push('/dashboard/commandes');
+    } catch (err) {
+      console.error('Erreur suppression:', err);
+      alert('Erreur lors de la suppression');
+    }
+  };
+
+  if (orderLoading && !order) {
+    return (
+      <div className="p-8">
+        <Card>
+          <CardContent className="p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-kaki-7 mx-auto mb-4"></div>
+            <p className="text-gray-600">Chargement...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (orderError || !order) {
+    return (
+      <div className="p-8">
+        <Card className="bg-red-50 border-red-200">
+          <CardContent className="p-12 text-center">
+            <p className="text-red-600 mb-4">Erreur : {orderError || 'Commande introuvable'}</p>
+            <Link href="/dashboard/commandes">
+              <Button variant="outline">Retour aux commandes</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const getTotalCost = () => {
     return order.totalCost + order.shippingCost + order.customsCost + order.otherFees;
   };
 
   const getStats = () => {
-    const products = order.products || [];
     const totalItems = products.length;
     const itemsSold = products.filter(p => p.status === 'sold').length;
     const itemsListed = products.filter(p => p.status === 'listed').length;
@@ -95,7 +95,7 @@ export default function CommandeDetailPage({ params }: { params: { id: string } 
       .reduce((sum, p) => sum + p.salePrice, 0);
     const currentProfit = totalRevenue - getTotalCost();
     const projectedProfit = projectedRevenue - getTotalCost();
-    const breakEvenPoint = (totalRevenue / getTotalCost()) * 100;
+    const breakEvenPoint = getTotalCost() > 0 ? (totalRevenue / getTotalCost()) * 100 : 0;
     
     return {
       totalItems,
@@ -175,10 +175,20 @@ export default function CommandeDetailPage({ params }: { params: { id: string } 
               </div>
             </div>
           </div>
-          <Button variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-100">
-            <Edit className="h-4 w-4 mr-2" />
-            Modifier
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-100">
+              <Edit className="h-4 w-4 mr-2" />
+              Modifier
+            </Button>
+            <Button 
+              variant="outline" 
+              className="border-red-300 text-red-600 hover:bg-red-50"
+              onClick={handleDelete}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Supprimer
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -296,10 +306,15 @@ export default function CommandeDetailPage({ params }: { params: { id: string } 
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {order.products && order.products.length > 0 ? (
-              order.products.map((product) => (
+            {productsLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-kaki-7 mx-auto mb-4"></div>
+                <p className="text-gray-600">Chargement des produits...</p>
+              </div>
+            ) : products.length > 0 ? (
+              products.map((product) => (
                 <div
-                  key={product.id}
+                  key={product._id}
                   className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-kaki-6 hover:shadow-md transition-all"
                 >
                   <div className="flex items-center gap-4 flex-1">

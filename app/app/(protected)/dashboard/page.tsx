@@ -1,42 +1,12 @@
+'use client';
+
 import { TrendingUp, Package, ShoppingCart, DollarSign, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { SalesStatsCards } from "@/components/dashboard/SalesStatsCards";
+import { ProductsList } from "@/components/dashboard/ProductsList";
 
 export default function DashboardPage() {
-  const stats = [
-    {
-      title: "Chiffre d'affaires",
-      value: "2 847 €",
-      change: "+12.5%",
-      trend: "up" as const,
-      icon: DollarSign,
-      color: "text-green-600",
-    },
-    {
-      title: "Articles en ligne",
-      value: "143",
-      change: "+8",
-      trend: "up" as const,
-      icon: Package,
-      color: "text-primary",
-    },
-    {
-      title: "Ventes ce mois",
-      value: "47",
-      change: "+23%",
-      trend: "up" as const,
-      icon: ShoppingCart,
-      color: "text-green-600",
-    },
-    {
-      title: "Bénéfice net",
-      value: "1 624 €",
-      change: "+18.2%",
-      trend: "up" as const,
-      icon: TrendingUp,
-      color: "text-green-600",
-    },
-  ];
 
   const platforms = [
     { name: "Vinted", sales: 28, color: "bg-[#09B1BA]" },
@@ -66,28 +36,8 @@ export default function DashboardPage() {
         <p className="text-muted-foreground">Vue d'ensemble de votre activité</p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.title}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {stat.title}
-                </CardTitle>
-                <Icon className={cn("h-4 w-4", stat.color)} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
-                <p className={cn("text-xs", stat.color)}>
-                  {stat.change} ce mois
-                </p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      {/* Stats Grid - Vraies données depuis l'API */}
+      <SalesStatsCards />
 
       {/* Alerts */}
       <Card>
@@ -139,34 +89,18 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Recent Sales */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Ventes récentes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {recentSales.map((sale, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border">
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{sale.item}</p>
-                    <p className="text-sm text-muted-foreground">{sale.platform}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-foreground">{sale.price}</p>
-                    <p className={cn(
-                      "text-xs",
-                      sale.status === "Livrée" ? "text-green-600" : "text-orange-500"
-                    )}>
-                      {sale.status}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Recent Sales - Vraies données depuis l'API */}
+        <ProductsList 
+          filter={{ status: 'sold', limit: 5 }} 
+          title="Ventes récentes" 
+        />
       </div>
+
+      {/* Produits en vente */}
+      <ProductsList 
+        filter={{ status: 'listed', limit: 10 }} 
+        title="Articles en ligne" 
+      />
     </div>
   );
 }
