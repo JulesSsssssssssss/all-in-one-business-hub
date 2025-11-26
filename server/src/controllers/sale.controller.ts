@@ -27,10 +27,10 @@ export class SaleController {
 
       const input: ICreateProductInput = req.body
 
-      // Validation basique
-      if (!input.name || !input.supplierOrderId || !input.unitCost || !input.salePrice) {
+      // Validation basique (salePrice est optionnel, sera 0 par défaut)
+      if (!input.name || !input.supplierOrderId || input.unitCost === undefined || input.unitCost === null) {
         res.status(400).json({
-          error: 'Missing required fields: name, supplierOrderId, unitCost, salePrice'
+          error: 'Missing required fields: name, supplierOrderId, unitCost'
         })
         return
       }

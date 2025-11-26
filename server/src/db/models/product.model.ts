@@ -7,21 +7,24 @@ export interface IProductDocument extends Document {
   _id: mongoose.Types.ObjectId
   userId: mongoose.Types.ObjectId
   supplierOrderId: mongoose.Types.ObjectId
-  name: string
-  size?: string
+  name: string // Description
+  brand?: string // Marque
+  size?: string // Taille
   quantity: number
   description?: string
   photos: string // JSON array des URLs
-  unitCost: number
-  purchaseDate: Date
-  salePrice: number
-  soldPrice?: number
+  url?: string // URL de vente (plateforme)
+  unitCost: number // Prix d'achat unitaire
+  totalCost: number // Prix total (quantity * unitCost)
+  purchaseDate: Date // Date achat
+  salePrice: number // Prix de vente prévu
+  soldPrice?: number // Vendu à combien
   soldTo?: string
-  status: 'in_stock' | 'listed' | 'sold'
+  status: 'in_delivery' | 'to_list' | 'in_progress' | 'listed' | 'for_sale' | 'completed' | 'sold' | 'problem' | 'sold_euros'
   condition?: string
   platform?: string
   listedDate?: Date
-  soldDate?: Date
+  soldDate?: Date // Date vente
   boosted: boolean
   createdAt: Date
   updatedAt: Date
@@ -47,6 +50,10 @@ const productSchema = new Schema<IProductDocument>({
     type: String,
     required: true
   },
+  brand: {
+    type: String,
+    required: false
+  },
   size: {
     type: String,
     required: false
@@ -64,7 +71,16 @@ const productSchema = new Schema<IProductDocument>({
     type: String,
     default: '[]' // JSON array
   },
+  url: {
+    type: String,
+    required: false
+  },
   unitCost: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  totalCost: {
     type: Number,
     required: true,
     min: 0
@@ -75,8 +91,9 @@ const productSchema = new Schema<IProductDocument>({
   },
   salePrice: {
     type: Number,
-    required: true,
-    min: 0
+    required: false,
+    min: 0,
+    default: 0
   },
   soldPrice: {
     type: Number,
@@ -89,8 +106,8 @@ const productSchema = new Schema<IProductDocument>({
   },
   status: {
     type: String,
-    enum: ['in_stock', 'listed', 'sold'],
-    default: 'in_stock',
+    enum: ['in_delivery', 'to_list', 'in_progress', 'listed', 'for_sale', 'completed', 'sold', 'problem', 'sold_euros'],
+    default: 'to_list',
     index: true
   },
   condition: {

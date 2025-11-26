@@ -7,21 +7,24 @@ export interface ISale {
   _id: Types.ObjectId
   userId: Types.ObjectId
   supplierOrderId: Types.ObjectId
-  name: string
-  size?: string
+  name: string // Description
+  brand?: string // Marque
+  size?: string // Taille
   quantity: number
   description?: string
   photos: string[] // URLs des photos
-  unitCost: number
-  purchaseDate: Date
-  salePrice: number
-  soldPrice?: number
+  url?: string // URL de vente (plateforme)
+  unitCost: number // Prix d'achat unitaire
+  totalCost: number // Prix total (quantity * unitCost)
+  purchaseDate: Date // Date achat
+  salePrice: number // Prix de vente prévu
+  soldPrice?: number // Vendu à combien
   soldTo?: string
-  status: 'in_stock' | 'listed' | 'sold'
+  status: 'in_delivery' | 'to_list' | 'in_progress' | 'listed' | 'for_sale' | 'completed' | 'sold' | 'problem' | 'sold_euros'
   condition?: string
   platform?: string
   listedDate?: Date
-  soldDate?: Date
+  soldDate?: Date // Date vente
   boosted: boolean
   createdAt: Date
   updatedAt: Date
@@ -32,14 +35,20 @@ export interface ISale {
  */
 export interface ICreateProductInput {
   supplierOrderId: string
-  name: string
-  size?: string
+  name: string // Description
+  brand?: string // Marque
+  size?: string // Taille
   quantity: number
   description?: string
   photos?: string[]
-  unitCost: number
-  purchaseDate: Date | string
-  salePrice: number
+  url?: string // URL plateforme
+  unitCost: number // Prix achat unitaire
+  totalCost?: number // Prix total (calculé: quantity * unitCost)
+  purchaseDate: Date | string // Date achat
+  salePrice?: number // Prix de vente prévu
+  soldPrice?: number // Vendu à combien
+  soldDate?: Date | string // Date vente
+  status?: 'in_delivery' | 'to_list' | 'in_progress' | 'listed' | 'for_sale' | 'completed' | 'sold' | 'problem' | 'sold_euros'
   condition?: string
   platform?: string
 }
@@ -70,15 +79,22 @@ export interface ISellProductInput {
  */
 export interface IUpdateProductInput {
   name?: string
+  brand?: string
   size?: string
   quantity?: number
   description?: string
   photos?: string[]
   unitCost?: number
+  totalCost?: number
   salePrice?: number
+  soldPrice?: number
+  soldDate?: Date | string
+  purchaseDate?: Date | string
   condition?: string
   platform?: string
   boosted?: boolean
+  status?: string
+  url?: string
 }
 
 /**

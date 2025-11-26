@@ -19,20 +19,28 @@ export class SaleService {
    * Créer un nouveau produit
    */
   async createProduct(userId: string, input: ICreateProductInput): Promise<IProductDocument> {
+    // Calcul automatique du coût total
+    const totalCost = input.totalCost || (input.quantity * input.unitCost);
+
     const product = await ProductModel.create({
       userId: new Types.ObjectId(userId),
       supplierOrderId: new Types.ObjectId(input.supplierOrderId),
       name: input.name,
+      brand: input.brand,
       size: input.size,
       quantity: input.quantity,
       description: input.description,
       photos: JSON.stringify(input.photos || []),
+      url: input.url,
       unitCost: input.unitCost,
+      totalCost: totalCost,
       purchaseDate: new Date(input.purchaseDate),
-      salePrice: input.salePrice,
+      salePrice: input.salePrice || 0,
+      soldPrice: input.soldPrice,
+      soldDate: input.soldDate ? new Date(input.soldDate) : undefined,
       condition: input.condition,
       platform: input.platform,
-      status: 'in_stock'
+      status: input.status || 'to_list'
     })
 
     return product
@@ -82,9 +90,19 @@ export class SaleService {
     }
 
     if (filter.dateFrom || filter.dateTo) {
-      query.createdAt = {}
-      if (filter.dateFrom) query.createdAt.$gte = filter.dateFrom
-      if (filter.dateTo) query.createdAt.$lte = filter.dateTo
+      // Filtrer par date de vente (soldDate) si disponible, sinon par date de création
+      const dateField = 'soldDate'
+      query[dateField] = {}
+      if (filter.dateFrom) {
+        const fromDate = new Date(filter.dateFrom)
+        fromDate.setHours(0, 0, 0, 0)
+        query[dateField].$gte = fromDate
+      }
+      if (filter.dateTo) {
+        const toDate = new Date(filter.dateTo)
+        toDate.setHours(23, 59, 59, 999)
+        query[dateField].$lte = toDate
+      }
     }
 
     const skip = (page - 1) * limit
@@ -94,7 +112,7 @@ export class SaleService {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate('supplierOrder'),
+        .populate('supplierOrderId'),
       ProductModel.countDocuments(query)
     ])
 
@@ -167,15 +185,22 @@ export class SaleService {
     const updateData: any = {}
 
     if (updates.name !== undefined) updateData.name = updates.name
+    if (updates.brand !== undefined) updateData.brand = updates.brand
     if (updates.size !== undefined) updateData.size = updates.size
     if (updates.quantity !== undefined) updateData.quantity = updates.quantity
     if (updates.description !== undefined) updateData.description = updates.description
     if (updates.photos !== undefined) updateData.photos = JSON.stringify(updates.photos)
     if (updates.unitCost !== undefined) updateData.unitCost = updates.unitCost
+    if (updates.totalCost !== undefined) updateData.totalCost = updates.totalCost
     if (updates.salePrice !== undefined) updateData.salePrice = updates.salePrice
+    if (updates.soldPrice !== undefined) updateData.soldPrice = updates.soldPrice
+    if (updates.soldDate !== undefined) updateData.soldDate = updates.soldDate
+    if (updates.purchaseDate !== undefined) updateData.purchaseDate = updates.purchaseDate
     if (updates.condition !== undefined) updateData.condition = updates.condition
     if (updates.platform !== undefined) updateData.platform = updates.platform
     if (updates.boosted !== undefined) updateData.boosted = updates.boosted
+    if (updates.status !== undefined) updateData.status = updates.status
+    if (updates.url !== undefined) updateData.url = updates.url
 
     const product = await ProductModel.findOneAndUpdate(
       {
