@@ -263,11 +263,11 @@ npm run lint     # Linter
 
 ### Port occupé
 ```bash
-# Port 5000
-lsof -i :5000 | grep LISTEN | awk '{print $2}' | xargs kill -9
+# Port 5000 (Windows)
+netstat -ano | findstr :5000
 
-# Port 3000
-lsof -i :3000 | grep LISTEN | awk '{print $2}' | xargs kill -9
+# Port 3000 (Windows)
+netstat -ano | findstr :3000
 ```
 
 ### Base de données
