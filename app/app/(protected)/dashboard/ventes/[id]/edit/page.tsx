@@ -102,8 +102,8 @@ export default function EditSalePage({ params }: { params: Promise<{ id: string 
 
         setFormData({
           supplierOrderId: typeof productData.supplierOrderId === 'object' 
-            ? productData.supplierOrderId._id 
-            : productData.supplierOrderId,
+            ? (productData.supplierOrderId as any)?._id || ''
+            : productData.supplierOrderId || '',
           name: productData.name || '',
           brand: productData.brand || '',
           size: productData.size || '',

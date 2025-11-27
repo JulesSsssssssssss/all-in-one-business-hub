@@ -50,7 +50,7 @@ export default function NewCommandePage() {
   };
 
   const getTotalCost = () => {
-    return formData.totalCost + formData.shippingCost + formData.customsCost + formData.otherFees;
+    return (formData.totalCost || 0) + (formData.shippingCost || 0) + (formData.customsCost || 0) + (formData.otherFees || 0);
   };
 
   const formatCurrency = (amount: number) => {
@@ -119,7 +119,7 @@ export default function NewCommandePage() {
                   name="purchaseDate"
                   type="date"
                   required
-                  value={formData.purchaseDate}
+                  value={typeof formData.purchaseDate === 'string' ? formData.purchaseDate : formData.purchaseDate.toISOString().split('T')[0]}
                   onChange={handleChange}
                   className="pl-10 bg-white border-gray-300 focus:border-kaki-6"
                 />

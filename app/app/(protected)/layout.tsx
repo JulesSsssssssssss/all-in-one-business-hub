@@ -7,13 +7,8 @@ import { useSession, authClient } from "@/lib/auth-client";
 import { LogOut } from "lucide-react";
 import { 
   LayoutDashboard, 
-  Package, 
   ShoppingCart, 
-  DollarSign, 
-  MessageSquare,
-  Settings,
   Menu,
-  TrendingUp,
   ShoppingBag,
   BarChart3
 } from "lucide-react";
@@ -30,10 +25,7 @@ const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/dashboard/commandes", icon: ShoppingBag, label: "Commandes Fournisseurs" },
   { href: "/dashboard/ventes", icon: ShoppingCart, label: "Ventes & Articles" },
-  { href: "/dashboard/rentabilite", icon: TrendingUp, label: "Rentabilité" },
-  { href: "/dashboard/finances", icon: DollarSign, label: "Finances" },
   { href: "/dashboard/statistiques", icon: BarChart3, label: "Statistiques" },
-  { href: "/dashboard/parametres", icon: Settings, label: "Paramètres" },
 ];
 
 function NavContent() {

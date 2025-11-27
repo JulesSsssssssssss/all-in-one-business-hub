@@ -25,7 +25,7 @@ import type { Product } from '@/types/sale';
 
 export default function VentesPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'in_stock' | 'listed' | 'sold'>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [orderFilter, setOrderFilter] = useState<string>('all');
   const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const [dateFrom, setDateFrom] = useState<string>('');
@@ -49,7 +49,7 @@ export default function VentesPage() {
     try {
       const [productsData, ordersData] = await Promise.all([
         getProducts({
-          status: statusFilter !== 'all' ? statusFilter : undefined,
+          status: statusFilter !== 'all' ? (statusFilter as any) : undefined,
           supplierOrderId: orderFilter !== 'all' ? orderFilter : undefined,
           dateFrom: dateFrom || undefined,
           dateTo: dateTo || undefined,
@@ -508,7 +508,7 @@ export default function VentesPage() {
               <tbody>
                 {filteredProducts.map((product) => {
                   const profits = calculateProfits(product);
-                  const productId = product._id || product.id;
+                  const productId = product._id || (product as any).id;
                   
                   return (
                     <tr key={productId} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
@@ -582,7 +582,7 @@ export default function VentesPage() {
                         </div>
                       </td>
                       <td className="py-4 px-4">
-                        <Link href={`/dashboard/commandes/${typeof product.supplierOrderId === 'object' ? product.supplierOrderId._id : product.supplierOrderId}`}>
+                        <Link href={`/dashboard/commandes/${typeof product.supplierOrderId === 'object' ? (product.supplierOrderId as any)._id : product.supplierOrderId}`}>
                           <Badge className="bg-kaki-2 text-kaki-7 border-kaki-4 hover:bg-kaki-3 cursor-pointer text-xs">
                             Voir commande
                           </Badge>

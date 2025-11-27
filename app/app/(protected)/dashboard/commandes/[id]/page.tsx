@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useSupplierOrders, type SupplierOrder } from '@/hooks/useSupplierOrders';
-import { useSales, type Product } from '@/hooks/useSales';
+import { useSales } from '@/hooks/useSales';
+import type { Product } from '@/types/sale';
 
 export default function CommandeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -45,7 +46,7 @@ export default function CommandeDetailPage({ params }: { params: Promise<{ id: s
     }
 
     try {
-      await deleteOrder(params.id);
+      await deleteOrder(id);
       router.push('/dashboard/commandes');
     } catch (err) {
       console.error('Erreur suppression:', err);
