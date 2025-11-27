@@ -6,6 +6,8 @@ export interface User {
   id: string;
   email: string;
   name: string | null;
+  hasAcre?: boolean; // Bénéficie de l'ACRE (réduction charges sociales)
+  acreStartDate?: Date; // Date de début de l'ACRE
 }
 
 export interface Session {

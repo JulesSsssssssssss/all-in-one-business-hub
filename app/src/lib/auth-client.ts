@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 
 // Configuration du client Better Auth
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000",
+  baseURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL || "http://localhost:5000",
   credentials: "include", // Important pour les cookies
 });
 

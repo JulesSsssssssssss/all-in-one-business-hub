@@ -105,12 +105,12 @@ export function useSupplierOrders() {
    * Obtenir toutes les commandes
    */
   const getOrders = useCallback(
-    async (status?: 'active' | 'completed'): Promise<SupplierOrder[]> => {
+    async (status?: 'active' | 'completed'): Promise<{ orders: SupplierOrder[] }> => {
       const queryString = status ? `?status=${status}` : ''
       const response = await apiCall<{ orders: SupplierOrder[] }>(
         `/supplier-orders${queryString}`
       )
-      return response.orders
+      return response
     },
     [apiCall]
   )

@@ -25,7 +25,7 @@ export default function CommandesPage() {
     try {
       const filter = statusFilter === 'all' ? undefined : statusFilter;
       const data = await getOrders(filter);
-      setOrders(data);
+      setOrders(data.orders);
     } catch (err) {
       console.error('Erreur chargement commandes:', err);
     }

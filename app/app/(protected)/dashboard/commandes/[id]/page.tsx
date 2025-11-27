@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, DollarSign, Package, TrendingUp, Edit, Trash2, Plus, Image as ImageIcon } from 'lucide-react';
@@ -10,26 +10,29 @@ import { Badge } from '@/components/ui/badge';
 import { useSupplierOrders, type SupplierOrder } from '@/hooks/useSupplierOrders';
 import { useSales, type Product } from '@/hooks/useSales';
 
-export default function CommandeDetailPage({ params }: { params: { id: string } }) {
+export default function CommandeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { getOrderById, deleteOrder, loading: orderLoading, error: orderError } = useSupplierOrders();
   const { getProductsBySupplierOrder, loading: productsLoading } = useSales();
+  
+  // Unwrap params promise
+  const { id } = use(params);
   
   const [order, setOrder] = useState<SupplierOrder | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     loadData();
-  }, [params.id]);
+  }, [id]);
 
   const loadData = async () => {
     try {
       // Charger la commande
-      const orderData = await getOrderById(params.id);
+      const orderData = await getOrderById(id);
       setOrder(orderData);
 
       // Charger les produits de cette commande
-      const productsData = await getProductsBySupplierOrder(params.id);
+      const productsData = await getProductsBySupplierOrder(id);
       setProducts(productsData);
     } catch (err) {
       console.error('Erreur chargement données:', err);
@@ -84,15 +87,21 @@ export default function CommandeDetailPage({ params }: { params: { id: string } 
 
   const getStats = () => {
     const totalItems = products.length;
-    const itemsSold = products.filter(p => p.status === 'sold').length;
-    const itemsListed = products.filter(p => p.status === 'listed').length;
-    const itemsInStock = products.filter(p => p.status === 'in_stock').length;
+    // Articles vendus = statut 'sold_euros' (vendu en euros)
+    const itemsSold = products.filter(p => p.status === 'sold_euros').length;
+    const itemsListed = products.filter(p => p.status === 'listed' || p.status === 'for_sale').length;
+    const itemsInStock = products.filter(p => p.status === 'in_delivery' || p.status === 'to_list' || p.status === 'in_progress').length;
+    
+    // Revenus = somme des soldPrice des articles vendus
     const totalRevenue = products
-      .filter(p => p.status === 'sold')
+      .filter(p => p.status === 'sold_euros')
       .reduce((sum, p) => sum + (p.soldPrice || 0), 0);
+    
+    // Revenus projetés = revenus actuels + prix de vente des articles non vendus
     const projectedRevenue = totalRevenue + products
-      .filter(p => p.status !== 'sold')
-      .reduce((sum, p) => sum + p.salePrice, 0);
+      .filter(p => p.status !== 'sold_euros')
+      .reduce((sum, p) => sum + (p.salePrice || 0), 0);
+    
     const currentProfit = totalRevenue - getTotalCost();
     const projectedProfit = projectedRevenue - getTotalCost();
     const breakEvenPoint = getTotalCost() > 0 ? (totalRevenue / getTotalCost()) * 100 : 0;
@@ -126,8 +135,14 @@ export default function CommandeDetailPage({ params }: { params: { id: string } 
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      sold: { label: 'Vendu', className: 'bg-green-100 text-green-700 border-green-300' },
-      listed: { label: 'En ligne', className: 'bg-blue-100 text-blue-700 border-blue-300' },
+      in_delivery: { label: 'En livraison', className: 'bg-gray-100 text-gray-700 border-gray-300' },
+      to_list: { label: 'À faire', className: 'bg-gray-100 text-gray-700 border-gray-300' },
+      in_progress: { label: 'En cours', className: 'bg-blue-100 text-blue-700 border-blue-300' },
+      listed: { label: 'À mettre en vente', className: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
+      for_sale: { label: 'En vente', className: 'bg-blue-100 text-blue-700 border-blue-300' },
+      sold: { label: 'ACHAT', className: 'bg-purple-100 text-purple-700 border-purple-300' },
+      problem: { label: 'Problème', className: 'bg-red-100 text-red-700 border-red-300' },
+      sold_euros: { label: 'Vendu €€€', className: 'bg-green-100 text-green-700 border-green-300' },
       in_stock: { label: 'En stock', className: 'bg-gray-100 text-gray-700 border-gray-300' },
     };
     
@@ -298,10 +313,12 @@ export default function CommandeDetailPage({ params }: { params: { id: string } 
               <Package className="h-5 w-5 text-kaki-7" />
               Articles ({stats.totalItems})
             </CardTitle>
-            <Button className="bg-primary hover:bg-kaki-7 text-white">
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter un article
-            </Button>
+            <Link href={`/dashboard/ventes/new?orderId=${id}`}>
+              <Button className="bg-primary hover:bg-kaki-7 text-white">
+                <Plus className="h-4 w-4 mr-2" />
+                Ajouter un article
+              </Button>
+            </Link>
           </div>
         </CardHeader>
         <CardContent>
@@ -357,10 +374,12 @@ export default function CommandeDetailPage({ params }: { params: { id: string } 
               <div className="text-center py-12">
                 <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600 mb-4">Aucun article dans cette commande</p>
-                <Button className="bg-primary hover:bg-kaki-7 text-white">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Ajouter le premier article
-                </Button>
+                <Link href={`/dashboard/ventes/new?orderId=${id}`}>
+                  <Button className="bg-primary hover:bg-kaki-7 text-white">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Ajouter le premier article
+                  </Button>
+                </Link>
               </div>
             )}
           </div>
