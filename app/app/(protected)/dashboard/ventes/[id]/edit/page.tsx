@@ -91,7 +91,7 @@ export default function EditSalePage({ params }: { params: Promise<{ id: string 
         getOrders()
       ]);
 
-      setOrders(ordersData.orders || []);
+      setOrders(Array.isArray(ordersData) ? ordersData : []);
 
       if (productData) {
         const photos = Array.isArray(productData.photos)

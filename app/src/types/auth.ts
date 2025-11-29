@@ -6,6 +6,7 @@ export interface User {
   id: string;
   email: string;
   name: string | null;
+  hasAcre?: boolean;
 }
 
 export interface Session {

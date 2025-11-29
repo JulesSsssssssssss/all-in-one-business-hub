@@ -2,17 +2,28 @@
  * Types pour la gestion des ventes/produits côté frontend
  */
 
-export type ProductStatus = 'in_stock' | 'listed' | 'sold'
+export type ProductStatus = 
+  | 'in_delivery'
+  | 'to_list'
+  | 'in_progress'
+  | 'listed'
+  | 'for_sale'
+  | 'sold'
+  | 'problem'
+  | 'sold_euros'
+  | 'in_stock'
 
 export interface Product {
   _id: string
   userId: string
   supplierOrderId: string
   name: string
+  brand?: string
   size?: string
   quantity: number
   description?: string
   photos: string[] // URLs des photos
+  url?: string
   unitCost: number
   purchaseDate: string
   salePrice: number
@@ -31,15 +42,23 @@ export interface Product {
 export interface CreateProductInput {
   supplierOrderId: string
   name: string
+  brand?: string
   size?: string
   quantity: number
   description?: string
   photos?: string[]
+  url?: string
   unitCost: number
+  totalCost?: number
   purchaseDate: string | Date
   salePrice: number
+  soldPrice?: number
+  soldTo?: string
+  soldDate?: string | Date
   condition?: string
   platform?: string
+  status?: ProductStatus
+  boosted?: boolean
 }
 
 export interface ListProductInput {

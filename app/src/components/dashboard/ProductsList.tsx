@@ -35,12 +35,18 @@ export function ProductsList({ filter, title = 'Produits' }: ProductsListProps) 
   }
 
   const getStatusBadge = (status: ProductStatus) => {
-    const variants = {
-      in_stock: { label: 'En stock', className: 'bg-blue-100 text-blue-800' },
-      listed: { label: 'En vente', className: 'bg-orange-100 text-orange-800' },
+    const variants: Record<ProductStatus, { label: string; className: string }> = {
+      in_delivery: { label: 'En livraison', className: 'bg-gray-100 text-gray-800' },
+      to_list: { label: 'À lister', className: 'bg-gray-100 text-gray-800' },
+      in_progress: { label: 'En cours', className: 'bg-blue-100 text-blue-800' },
+      listed: { label: 'Listé', className: 'bg-yellow-100 text-yellow-800' },
+      for_sale: { label: 'En vente', className: 'bg-blue-100 text-blue-800' },
       sold: { label: 'Vendu', className: 'bg-green-100 text-green-800' },
+      problem: { label: 'Problème', className: 'bg-red-100 text-red-800' },
+      sold_euros: { label: 'Vendu €€€', className: 'bg-green-100 text-green-800' },
+      in_stock: { label: 'En stock', className: 'bg-blue-100 text-blue-800' },
     }
-    const variant = variants[status]
+    const variant = variants[status] || variants.in_stock
     return <Badge className={variant.className}>{variant.label}</Badge>
   }
 

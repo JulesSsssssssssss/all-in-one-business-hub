@@ -111,7 +111,7 @@ export default function NewSalePage() {
   const loadOrders = async () => {
     try {
       const data = await getOrders();
-      setOrders(data.orders || []);
+      setOrders(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Erreur chargement commandes:', err);
     }
