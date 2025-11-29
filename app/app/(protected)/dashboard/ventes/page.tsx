@@ -74,10 +74,8 @@ export default function VentesPage() {
     listed: products.filter(p => p.status === 'listed').length,
   };
 
-  // Filtre des produits
-  const uniqueOrders = Array.from(new Set(products.map(p => p.supplierOrderId)))
-    .map(id => products.find(p => p.supplierOrderId === id)?.supplierOrder)
-    .filter(Boolean);
+  // Filtre des produits (liste unique des IDs de commandes)
+  const uniqueOrderIds = Array.from(new Set(products.map(p => p.supplierOrderId))).filter(Boolean);
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -220,9 +218,9 @@ export default function VentesPage() {
               className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:border-kaki-6 focus:outline-none focus:ring-2 focus:ring-kaki-6/20"
             >
               <option value="all">Toutes les commandes</option>
-              {uniqueOrders.map((order) => (
-                <option key={order!.id} value={order!.id}>
-                  {order!.name}
+              {uniqueOrderIds.map((orderId) => (
+                <option key={orderId} value={orderId}>
+                  Commande {orderId}
                 </option>
               ))}
             </select>
