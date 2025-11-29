@@ -33,8 +33,8 @@ export async function GET(req: NextRequest) {
         .find({ userId, status: 'sold', soldPrice: { $exists: true } })
         .toArray()
 
-      const totalRevenue = soldItems.reduce((sum, p) => sum + (p.soldPrice || 0), 0)
-      const totalCost = soldItems.reduce((sum, p) => sum + (p.unitCost || 0) * (p.quantity || 1), 0)
+      const totalRevenue = soldItems.reduce((sum: number, p: any) => sum + (p.soldPrice || 0), 0)
+      const totalCost = soldItems.reduce((sum: number, p: any) => sum + (p.unitCost || 0) * (p.quantity || 1), 0)
       const totalProfit = totalRevenue - totalCost
       const averageMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100) : 0
 
