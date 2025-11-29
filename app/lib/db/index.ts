@@ -6,7 +6,7 @@ function getMongoUri(): string {
   const password = process.env.MONGODB_PASSWORD
   const host = process.env.MONGODB_HOST
   const database = process.env.MONGODB_DATABASE_NAME
-  const params = process.env.MONGODB_PARAMS || 'retryWrites=true&w=majority'
+  let params = process.env.MONGODB_PARAMS || 'retryWrites=true&w=majority'
   const appName = process.env.MONGODB_APP_NAME || 'VinteApp'
 
   if (!username || !password || !host || !database) {
@@ -17,6 +17,9 @@ function getMongoUri(): string {
     if (!database) missing.push('MONGODB_DATABASE_NAME')
     throw new Error(`Missing MongoDB environment variables: ${missing.join(', ')}`)
   }
+
+  // Nettoyer les params au cas où ils commencent par ?
+  params = params.replace(/^\?+/, '')
 
   return `mongodb+srv://${username}:${password}@${host}/${database}?${params}&appName=${appName}`
 }
