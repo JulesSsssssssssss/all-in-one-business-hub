@@ -12,6 +12,7 @@ export type ProductStatus =
   | 'problem'
   | 'sold_euros'
   | 'in_stock'
+  | 'in_stock_euros'
 
 export interface Product {
   _id: string
@@ -25,6 +26,7 @@ export interface Product {
   photos: string[] // URLs des photos
   url?: string
   unitCost: number
+  totalCost?: number
   purchaseDate: string
   salePrice: number
   soldPrice?: number

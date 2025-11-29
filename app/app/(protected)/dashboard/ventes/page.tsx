@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   ShoppingCart, 
@@ -19,135 +19,42 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import type { Product } from '@/types/order';
+import { useSales } from '@/hooks/useSales';
+import type { Product } from '@/types/sale';
 
 export default function VentesPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'in_stock' | 'listed' | 'sold'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'in_stock_euros' | 'listed' | 'sold_euros'>('all');
   const [orderFilter, setOrderFilter] = useState<string>('all');
+  const [products, setProducts] = useState<Product[]>([]);
+  
+  const { getProducts, loading, error } = useSales();
   
   // Paramètre utilisateur pour l'ACRE (à récupérer depuis l'API)
   const userHasAcre = true; // TODO: Récupérer depuis le profil utilisateur
 
-  // Données mock - à remplacer par des vraies données
-  const mockProducts: Product[] = [
-    {
-      id: 'p1',
-      userId: 1,
-      supplierOrderId: '1',
-      name: 'Nike Air Max 90',
-      size: '42',
-      quantity: 1,
-      description: 'Baskets Nike Air Max 90 blanches',
-      photos: [],
-      unitCost: 35,
-      purchaseDate: '2025-03-15',
-      salePrice: 80,
-      soldPrice: 75,
-      soldTo: '75',
-      status: 'sold',
-      condition: 'Très bon état',
-      platform: 'Vinted',
-      listedDate: '2025-03-16',
-      soldDate: '2025-03-18',
-      boosted: true,
-      createdAt: '2025-03-15',
-      updatedAt: '2025-03-18',
-      supplierOrder: {
-        id: '1',
-        userId: 1,
-        name: 'Lot Nike - Alibaba Mars 2025',
-        supplier: 'Alibaba Express',
-        purchaseDate: '2025-03-15',
-        totalCost: 1500,
-        shippingCost: 150,
-        customsCost: 80,
-        otherFees: 20,
-        status: 'active',
-        createdAt: '2025-03-15',
-        updatedAt: '2025-03-15',
-      },
-    },
-    {
-      id: 'p2',
-      userId: 1,
-      supplierOrderId: '1',
-      name: 'Nike Hoodie',
-      size: 'M',
-      quantity: 1,
-      description: 'Sweat à capuche Nike noir',
-      photos: [],
-      unitCost: 35,
-      purchaseDate: '2025-03-15',
-      salePrice: 50,
-      status: 'listed',
-      condition: 'Bon état',
-      platform: 'Leboncoin',
-      listedDate: '2025-03-17',
-      boosted: false,
-      createdAt: '2025-03-15',
-      updatedAt: '2025-03-17',
-      supplierOrder: {
-        id: '1',
-        userId: 1,
-        name: 'Lot Nike - Alibaba Mars 2025',
-        supplier: 'Alibaba Express',
-        purchaseDate: '2025-03-15',
-        totalCost: 1500,
-        shippingCost: 150,
-        customsCost: 80,
-        otherFees: 20,
-        status: 'active',
-        createdAt: '2025-03-15',
-        updatedAt: '2025-03-15',
-      },
-    },
-    {
-      id: 'p3',
-      userId: 1,
-      supplierOrderId: '2',
-      name: 'Vintage Levi\'s 501',
-      size: '32',
-      quantity: 1,
-      description: 'Jean Levi\'s 501 vintage',
-      photos: [],
-      unitCost: 16.67,
-      purchaseDate: '2025-03-10',
-      salePrice: 65,
-      soldPrice: 60,
-      soldTo: '60',
-      status: 'sold',
-      condition: 'Très bon état',
-      platform: 'Vinted',
-      listedDate: '2025-03-11',
-      soldDate: '2025-03-12',
-      boosted: false,
-      createdAt: '2025-03-10',
-      updatedAt: '2025-03-12',
-      supplierOrder: {
-        id: '2',
-        userId: 1,
-        name: 'Vêtements Vintage - Vide Grenier',
-        supplier: 'Vide Grenier Paris 18',
-        purchaseDate: '2025-03-10',
-        totalCost: 250,
-        shippingCost: 0,
-        customsCost: 0,
-        otherFees: 0,
-        status: 'active',
-        createdAt: '2025-03-10',
-        updatedAt: '2025-03-10',
-      },
-    },
-  ];
+  // Charger les produits au montage
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const response = await getProducts();
+        setProducts(Array.isArray(response.products) ? response.products : []);
+      } catch (err) {
+        console.error('Erreur lors du chargement des produits:', err);
+        setProducts([]);
+      }
+    };
+    loadProducts();
+  }, [getProducts]);
 
   // Calcul des bénéfices et impôts (basé sur le paramètre utilisateur)
   const calculateProfits = (product: Product) => {
     const saleAmount = product.soldPrice || product.salePrice;
-    const grossProfit = saleAmount - product.unitCost;
+    const cost = product.totalCost || (product.unitCost * product.quantity);
+    const grossProfit = saleAmount - cost;
     
-    // Taux d'imposition : 6.6% avec ACRE, 13.2% sans ACRE (paramètre global utilisateur)
-    const taxRate = userHasAcre ? 0.066 : 0.132;
+    // Taux d'imposition : 11% avec ACRE, 22% sans ACRE
+    const taxRate = userHasAcre ? 0.11 : 0.22;
     const taxes = saleAmount * taxRate;
     const netProfit = grossProfit - taxes;
     
@@ -160,19 +67,19 @@ export default function VentesPage() {
 
   // Stats globales
   const stats = {
-    totalSales: mockProducts.filter(p => p.status === 'sold').length,
-    totalRevenue: mockProducts.filter(p => p.status === 'sold').reduce((sum, p) => sum + (p.soldPrice || 0), 0),
-    totalProfit: mockProducts.filter(p => p.status === 'sold').reduce((sum, p) => sum + calculateProfits(p).netProfit, 0),
-    inStock: mockProducts.filter(p => p.status === 'in_stock').length,
-    listed: mockProducts.filter(p => p.status === 'listed').length,
+    totalSales: products.filter(p => p.status === 'sold_euros').length,
+    totalRevenue: products.filter(p => p.status === 'sold_euros').reduce((sum: number, p: any) => sum + (p.soldPrice || 0), 0),
+    totalProfit: products.filter(p => p.status === 'sold_euros').reduce((sum: number, p: any) => sum + calculateProfits(p).netProfit, 0),
+    inStock: products.filter(p => p.status === 'in_stock_euros').length,
+    listed: products.filter(p => p.status === 'listed').length,
   };
 
   // Filtre des produits
-  const uniqueOrders = Array.from(new Set(mockProducts.map(p => p.supplierOrderId)))
-    .map(id => mockProducts.find(p => p.supplierOrderId === id)?.supplierOrder)
+  const uniqueOrders = Array.from(new Set(products.map(p => p.supplierOrderId)))
+    .map(id => products.find(p => p.supplierOrderId === id)?.supplierOrder)
     .filter(Boolean);
 
-  const filteredProducts = mockProducts.filter(product => {
+  const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          product.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'all' || product.status === statusFilter;
@@ -194,12 +101,14 @@ export default function VentesPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      sold: { label: 'Vendu', className: 'bg-green-100 text-green-700 border-green-300' },
+      sold_euros: { label: 'Vendu', className: 'bg-green-100 text-green-700 border-green-300' },
       listed: { label: 'En ligne', className: 'bg-blue-100 text-blue-700 border-blue-300' },
-      in_stock: { label: 'En stock', className: 'bg-gray-100 text-gray-700 border-gray-300' },
+      in_stock_euros: { label: 'En stock', className: 'bg-gray-100 text-gray-700 border-gray-300' },
+      in_delivery: { label: 'En livraison', className: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
+      to_list: { label: 'À mettre en ligne', className: 'bg-purple-100 text-purple-700 border-purple-300' },
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.in_stock;
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.in_stock_euros;
     return <Badge className={`${config.className} border text-xs`}>{config.label}</Badge>;
   };
 
@@ -328,10 +237,10 @@ export default function VentesPage() {
                 Tous
               </Button>
               <Button
-                variant={statusFilter === 'in_stock' ? 'default' : 'outline'}
-                onClick={() => setStatusFilter('in_stock')}
+                variant={statusFilter === 'in_stock_euros' ? 'default' : 'outline'}
+                onClick={() => setStatusFilter('in_stock_euros')}
                 size="sm"
-                className={statusFilter === 'in_stock' ? 'bg-primary hover:bg-kaki-7' : 'border-gray-300'}
+                className={statusFilter === 'in_stock_euros' ? 'bg-primary hover:bg-kaki-7' : 'border-gray-300'}
               >
                 En stock
               </Button>
@@ -344,10 +253,10 @@ export default function VentesPage() {
                 En ligne
               </Button>
               <Button
-                variant={statusFilter === 'sold' ? 'default' : 'outline'}
-                onClick={() => setStatusFilter('sold')}
+                variant={statusFilter === 'sold_euros' ? 'default' : 'outline'}
+                onClick={() => setStatusFilter('sold_euros')}
                 size="sm"
-                className={statusFilter === 'sold' ? 'bg-primary hover:bg-kaki-7' : 'border-gray-300'}
+                className={statusFilter === 'sold_euros' ? 'bg-primary hover:bg-kaki-7' : 'border-gray-300'}
               >
                 Vendus
               </Button>
@@ -362,6 +271,22 @@ export default function VentesPage() {
           <CardTitle className="text-gray-900">Articles ({filteredProducts.length})</CardTitle>
         </CardHeader>
         <CardContent>
+          {loading && (
+            <div className="text-center py-8">
+              <p className="text-gray-600">Chargement des produits...</p>
+            </div>
+          )}
+          {error && (
+            <div className="text-center py-8">
+              <p className="text-red-600">Erreur : {error}</p>
+            </div>
+          )}
+          {!loading && !error && filteredProducts.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-600">Aucun produit trouvé</p>
+            </div>
+          )}
+          {!loading && !error && filteredProducts.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -475,15 +400,6 @@ export default function VentesPage() {
               </tbody>
             </table>
           </div>
-
-          {filteredProducts.length === 0 && (
-            <div className="text-center py-12">
-              <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune vente trouvée</h3>
-              <p className="text-gray-600 mb-6">
-                {searchQuery ? 'Essayez avec d\'autres termes de recherche' : 'Commencez par enregistrer vos premières ventes'}
-              </p>
-            </div>
           )}
         </CardContent>
       </Card>

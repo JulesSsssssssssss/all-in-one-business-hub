@@ -76,7 +76,7 @@ export function useSales() {
    */
   const createProduct = useCallback(
     async (input: CreateProductInput): Promise<Product> => {
-      const response = await apiCall<CreateProductResponse>('/sales/products', {
+      const response = await apiCall<CreateProductResponse>('/sales', {
         method: 'POST',
         body: JSON.stringify(input),
       })
@@ -106,7 +106,7 @@ export function useSales() {
 
       const queryString = params.toString()
       return await apiCall<ProductsResponse>(
-        `/sales/products${queryString ? `?${queryString}` : ''}`
+        `/sales${queryString ? `?${queryString}` : ''}`
       )
     },
     [apiCall]
@@ -117,7 +117,7 @@ export function useSales() {
    */
   const getProductById = useCallback(
     async (id: string): Promise<Product> => {
-      const response = await apiCall<{ product: Product }>(`/sales/products/${id}`)
+      const response = await apiCall<{ product: Product }>(`/sales/${id}`)
       return response.product
     },
     [apiCall]
@@ -128,7 +128,7 @@ export function useSales() {
    */
   const updateProduct = useCallback(
     async (id: string, updates: UpdateProductInput): Promise<Product> => {
-      const response = await apiCall<UpdateProductResponse>(`/sales/products/${id}`, {
+      const response = await apiCall<UpdateProductResponse>(`/sales/${id}`, {
         method: 'PUT',
         body: JSON.stringify(updates),
       })
@@ -142,7 +142,7 @@ export function useSales() {
    */
   const deleteProduct = useCallback(
     async (id: string): Promise<void> => {
-      await apiCall(`/sales/products/${id}`, {
+      await apiCall(`/sales/${id}`, {
         method: 'DELETE',
       })
     },
