@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server'
 
 export async function GET() {
-  return NextResponse.json({ message: 'Supplier orders API - Coming soon' })
+  // TODO: Implémenter avec MongoDB
+  return NextResponse.json({ orders: [] })
 }
 
 export async function POST() {
-  return NextResponse.json({ message: 'Supplier orders API - Coming soon' })
+  // TODO: Implémenter avec MongoDB
+  return NextResponse.json({ 
+    message: 'Order creation not yet implemented',
+    success: false 
+  }, { status: 501 })
 }

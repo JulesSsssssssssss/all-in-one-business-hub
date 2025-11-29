@@ -25,17 +25,18 @@ export default function CommandesPage() {
     try {
       const filter = statusFilter === 'all' ? undefined : statusFilter;
       const data = await getOrders(filter);
-      setOrders(data);
+      setOrders(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Erreur chargement commandes:', err);
+      setOrders([]);
     }
   };
 
   // Stats calculées depuis les vraies données
   const stats = {
-    totalOrders: orders.length,
-    activeOrders: orders.filter(o => o.status === 'active').length,
-    totalInvested: orders.reduce((sum, o) => sum + o.totalCost + o.shippingCost + o.customsCost + o.otherFees, 0),
+    totalOrders: orders?.length || 0,
+    activeOrders: orders?.filter(o => o.status === 'active').length || 0,
+    totalInvested: orders?.reduce((sum, o) => sum + o.totalCost + o.shippingCost + o.customsCost + o.otherFees, 0) || 0,
   };
 
   const filteredOrders = orders.filter(order => {
