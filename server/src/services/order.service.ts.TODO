@@ -1,0 +1,387 @@
+import SupplierOrder from '../db/models/supplier-order.model';
+import Product from '../db/models/product.model';
+import { connectMongooseToDatabase } from '../db';
+import type { 
+  SupplierOrder, 
+  Product, 
+  CreateSupplierOrderDto, 
+  UpdateSupplierOrderDto,
+  CreateProductDto,
+  UpdateProductDto,
+  OrderProfitability,
+  DashboardStats
+} from '../types/order';
+
+/**
+ * Service pour la gestion des commandes fournisseurs
+ */
+export class SupplierOrderService {
+  /**
+   * Créer une nouvelle commande fournisseur
+   */
+  async createOrder(userId: number, data: CreateSupplierOrderDto): Promise<SupplierOrder> {
+    const order = await prisma.supplierOrder.create({
+      data: {
+        userId,
+        name: data.name,
+        supplier: data.supplier,
+        purchaseDate: new Date(data.purchaseDate),
+        totalCost: data.totalCost,
+        shippingCost: data.shippingCost || 0,
+        customsCost: data.customsCost || 0,
+        otherFees: data.otherFees || 0,
+        notes: data.notes,
+        status: 'active',
+      },
+      include: {
+        products: true,
+      },
+    });
+
+    return order as any;
+  }
+
+  /**
+   * Récupérer toutes les commandes d'un utilisateur
+   */
+  async getOrdersByUserId(userId: number): Promise<SupplierOrder[]> {
+    const orders = await prisma.supplierOrder.findMany({
+      where: { userId },
+      include: {
+        products: true,
+      },
+      orderBy: {
+        purchaseDate: 'desc',
+      },
+    });
+
+    return orders as any;
+  }
+
+  /**
+   * Récupérer une commande par son ID
+   */
+  async getOrderById(orderId: string, userId: number): Promise<SupplierOrder | null> {
+    const order = await prisma.supplierOrder.findFirst({
+      where: {
+        id: orderId,
+        userId,
+      },
+      include: {
+        products: true,
+      },
+    });
+
+    return order as any;
+  }
+
+  /**
+   * Mettre à jour une commande
+   */
+  async updateOrder(
+    orderId: string,
+    userId: number,
+    data: UpdateSupplierOrderDto
+  ): Promise<SupplierOrder> {
+    const updateData: any = {};
+
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.supplier !== undefined) updateData.supplier = data.supplier;
+    if (data.purchaseDate !== undefined) updateData.purchaseDate = new Date(data.purchaseDate);
+    if (data.totalCost !== undefined) updateData.totalCost = data.totalCost;
+    if (data.shippingCost !== undefined) updateData.shippingCost = data.shippingCost;
+    if (data.customsCost !== undefined) updateData.customsCost = data.customsCost;
+    if (data.otherFees !== undefined) updateData.otherFees = data.otherFees;
+    if (data.notes !== undefined) updateData.notes = data.notes;
+    if (data.status !== undefined) updateData.status = data.status;
+
+    const order = await prisma.supplierOrder.update({
+      where: {
+        id: orderId,
+      },
+      data: updateData,
+      include: {
+        products: true,
+      },
+    });
+
+    return order as any;
+  }
+
+  /**
+   * Supprimer une commande
+   */
+  async deleteOrder(orderId: string, userId: number): Promise<void> {
+    await prisma.supplierOrder.delete({
+      where: {
+        id: orderId,
+      },
+    });
+  }
+
+  /**
+   * Calculer la rentabilité d'une commande
+   */
+  async calculateOrderProfitability(orderId: string, userId: number): Promise<OrderProfitability> {
+    const order = await this.getOrderById(orderId, userId);
+    
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    const products = order.products || [];
+    const totalCost = order.totalCost + order.shippingCost + order.customsCost + order.otherFees;
+    
+    const totalItems = products.length;
+    const itemsSold = products.filter(p => p.status === 'sold').length;
+    const itemsListed = products.filter(p => p.status === 'listed').length;
+    const itemsInStock = products.filter(p => p.status === 'in_stock').length;
+    
+    const totalRevenue = products
+      .filter(p => p.status === 'sold')
+      .reduce((sum, p) => sum + (p.soldPrice || 0), 0);
+    
+    const projectedRevenue = totalRevenue + products
+      .filter(p => p.status !== 'sold')
+      .reduce((sum, p) => sum + p.salePrice, 0);
+    
+    const currentProfit = totalRevenue - totalCost;
+    const projectedProfit = projectedRevenue - totalCost;
+    const profitMargin = totalCost > 0 ? (currentProfit / totalCost) * 100 : 0;
+    const breakEvenPoint = totalCost > 0 ? (totalRevenue / totalCost) * 100 : 0;
+    
+    let status: 'profitable' | 'in_progress' | 'not_profitable';
+    if (breakEvenPoint >= 100) {
+      status = 'profitable';
+    } else if (breakEvenPoint >= 50) {
+      status = 'in_progress';
+    } else {
+      status = 'not_profitable';
+    }
+
+    return {
+      orderId: order.id,
+      orderName: order.name,
+      supplier: order.supplier,
+      purchaseDate: order.purchaseDate,
+      totalCost,
+      totalItems,
+      itemsSold,
+      itemsInStock,
+      itemsListed,
+      totalRevenue,
+      currentProfit,
+      profitMargin,
+      breakEvenPoint: Math.min(breakEvenPoint, 100),
+      projectedRevenue,
+      projectedProfit,
+      status,
+    };
+  }
+
+  /**
+   * Récupérer la rentabilité de toutes les commandes
+   */
+  async getAllOrdersProfitability(userId: number): Promise<OrderProfitability[]> {
+    const orders = await this.getOrdersByUserId(userId);
+    
+    const profitabilityPromises = orders.map(order => 
+      this.calculateOrderProfitability(order.id, userId)
+    );
+    
+    return Promise.all(profitabilityPromises);
+  }
+
+  /**
+   * Récupérer les statistiques globales du dashboard
+   */
+  async getDashboardStats(userId: number): Promise<DashboardStats> {
+    const profitabilities = await this.getAllOrdersProfitability(userId);
+    
+    const totalInvested = profitabilities.reduce((sum, p) => sum + p.totalCost, 0);
+    const totalRevenue = profitabilities.reduce((sum, p) => sum + p.totalRevenue, 0);
+    const totalProfit = profitabilities.reduce((sum, p) => sum + p.currentProfit, 0);
+    const profitMargin = totalInvested > 0 ? (totalProfit / totalInvested) * 100 : 0;
+    
+    const activeOrders = profitabilities.filter(p => p.status !== 'profitable').length;
+    const profitableOrders = profitabilities.filter(p => p.status === 'profitable').length;
+    
+    const totalProducts = profitabilities.reduce((sum, p) => sum + p.totalItems, 0);
+    const productsSold = profitabilities.reduce((sum, p) => sum + p.itemsSold, 0);
+    const productsInStock = profitabilities.reduce((sum, p) => sum + p.itemsInStock, 0);
+    const productsListed = profitabilities.reduce((sum, p) => sum + p.itemsListed, 0);
+
+    return {
+      totalInvested,
+      totalRevenue,
+      totalProfit,
+      profitMargin,
+      activeOrders,
+      profitableOrders,
+      totalProducts,
+      productsSold,
+      productsInStock,
+      productsListed,
+    };
+  }
+}
+
+/**
+ * Service pour la gestion des produits
+ */
+export class ProductService {
+  /**
+   * Créer un nouveau produit
+   */
+  async createProduct(userId: number, data: CreateProductDto): Promise<Product> {
+    const product = await prisma.product.create({
+      data: {
+        userId,
+        supplierOrderId: data.supplierOrderId,
+        name: data.name,
+        description: data.description,
+        photos: JSON.stringify(data.photos || []),
+        unitCost: data.unitCost,
+        salePrice: data.salePrice,
+        platform: data.platform,
+        status: 'in_stock',
+      },
+      include: {
+        supplierOrder: true,
+      },
+    });
+
+    return {
+      ...product,
+      photos: JSON.parse(product.photos),
+    } as any;
+  }
+
+  /**
+   * Récupérer tous les produits d'un utilisateur
+   */
+  async getProductsByUserId(userId: number): Promise<Product[]> {
+    const products = await prisma.product.findMany({
+      where: { userId },
+      include: {
+        supplierOrder: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return products.map(p => ({
+      ...p,
+      photos: JSON.parse(p.photos),
+    })) as any;
+  }
+
+  /**
+   * Récupérer les produits d'une commande spécifique
+   */
+  async getProductsByOrderId(orderId: string, userId: number): Promise<Product[]> {
+    const products = await prisma.product.findMany({
+      where: {
+        supplierOrderId: orderId,
+        userId,
+      },
+      include: {
+        supplierOrder: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return products.map(p => ({
+      ...p,
+      photos: JSON.parse(p.photos),
+    })) as any;
+  }
+
+  /**
+   * Récupérer un produit par son ID
+   */
+  async getProductById(productId: string, userId: number): Promise<Product | null> {
+    const product = await prisma.product.findFirst({
+      where: {
+        id: productId,
+        userId,
+      },
+      include: {
+        supplierOrder: true,
+      },
+    });
+
+    if (!product) return null;
+
+    return {
+      ...product,
+      photos: JSON.parse(product.photos),
+    } as any;
+  }
+
+  /**
+   * Mettre à jour un produit
+   */
+  async updateProduct(
+    productId: string,
+    userId: number,
+    data: UpdateProductDto
+  ): Promise<Product> {
+    const updateData: any = {};
+
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.photos !== undefined) updateData.photos = JSON.stringify(data.photos);
+    if (data.unitCost !== undefined) updateData.unitCost = data.unitCost;
+    if (data.salePrice !== undefined) updateData.salePrice = data.salePrice;
+    if (data.soldPrice !== undefined) updateData.soldPrice = data.soldPrice;
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.platform !== undefined) updateData.platform = data.platform;
+    if (data.listedDate !== undefined) updateData.listedDate = new Date(data.listedDate);
+    if (data.soldDate !== undefined) updateData.soldDate = new Date(data.soldDate);
+
+    const product = await prisma.product.update({
+      where: {
+        id: productId,
+      },
+      data: updateData,
+      include: {
+        supplierOrder: true,
+      },
+    });
+
+    return {
+      ...product,
+      photos: JSON.parse(product.photos),
+    } as any;
+  }
+
+  /**
+   * Supprimer un produit
+   */
+  async deleteProduct(productId: string, userId: number): Promise<void> {
+    await prisma.product.delete({
+      where: {
+        id: productId,
+      },
+    });
+  }
+
+  /**
+   * Marquer un produit comme vendu
+   */
+  async markAsSold(productId: string, userId: number, soldPrice: number): Promise<Product> {
+    return this.updateProduct(productId, userId, {
+      status: 'sold',
+      soldPrice,
+      soldDate: new Date().toISOString(),
+    });
+  }
+}
+
+// Instances singleton
+export const supplierOrderService = new SupplierOrderService();
+export const productService = new ProductService();

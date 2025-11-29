@@ -1,0 +1,110 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Nouvelle palette de couleurs du projet (clair -> foncé) */
+    --color-1: 60 14% 95%;         /* #F3F4F0 - Très clair */
+    --color-2: 60 14% 91%;         /* #E7EAE1 - Clair */
+    --color-3: 60 14% 81%;         /* #CFD5C3 - Moyen clair */
+    --color-4: 60 14% 70%;         /* #B8C0A5 - Moyen */
+    --color-5: 60 14% 59%;         /* #A0AA88 - Moyen foncé */
+    --color-6: 60 14% 49%;         /* #88956A - Foncé */
+    --color-7: 60 14% 40%;         /* #6D7755 - Très foncé */
+    --color-8: 60 14% 30%;         /* #525A3F - Sombre */
+    --color-9: 60 14% 20%;         /* #363C2A - Très sombre */
+    --color-10: 60 14% 11%;        /* #1B1E15 - Ultra sombre */
+    --color-11: 60 14% 7%;         /* #13150F - Noir profond */
+    
+    /* Thème clair */
+    --background: 60 14% 95%;      /* #F3F4F0 */
+    --foreground: 60 14% 20%;      /* #363C2A */
+    --card: 0 0% 100%;
+    --card-foreground: 60 14% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 60 14% 20%;
+    --primary: 60 14% 40%;         /* #6D7755 - color-7 */
+    --primary-foreground: 60 14% 95%;
+    --secondary: 60 14% 70%;       /* #B8C0A5 - color-4 */
+    --secondary-foreground: 60 14% 20%;
+    --muted: 60 14% 91%;           /* #E7EAE1 - color-2 */
+    --muted-foreground: 60 14% 40%;
+    --accent: 60 14% 49%;          /* #88956A - color-6 */
+    --accent-foreground: 60 14% 95%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 60 14% 81%;          /* #CFD5C3 - color-3 */
+    --input: 60 14% 81%;
+    --ring: 60 14% 40%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Thème sombre avec votre nouvelle palette - VERSION PLUS CLAIRE */
+    --background: 60 14% 20%;      /* #363C2A - color-9 (plus clair) */
+    --foreground: 60 14% 95%;      /* #F3F4F0 - color-1 */
+    --card: 60 14% 30%;            /* #525A3F - color-8 */
+    --card-foreground: 60 14% 95%;
+    --popover: 60 14% 30%;
+    --popover-foreground: 60 14% 95%;
+    --primary: 60 14% 59%;         /* #A0AA88 - color-5 (plus clair) */
+    --primary-foreground: 60 14% 11%;
+    --secondary: 60 14% 70%;       /* #B8C0A5 - color-4 */
+    --secondary-foreground: 60 14% 11%;
+    --muted: 60 14% 40%;           /* #6D7755 - color-7 */
+    --muted-foreground: 60 14% 81%;
+    --accent: 60 14% 49%;          /* #88956A - color-6 */
+    --accent-foreground: 60 14% 95%;
+    --destructive: 0 62.8% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 60 14% 40%;          /* #6D7755 - color-7 */
+    --input: 60 14% 40%;
+    --ring: 60 14% 59%;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Amélioration des animations */
+@layer utilities {
+  .animate-in {
+    animation-duration: 0.5s;
+    animation-fill-mode: both;
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.5s ease-in;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

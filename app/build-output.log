@@ -1,0 +1,23 @@
+
+> app@0.1.0 build
+> next build
+
+node:internal/modules/package_json_reader:113
+  const parsed = modulesBinding.readPackageJSON(
+                                ^
+
+Error: Invalid package config /Users/julesruberti/Documents/all-in-one-business-hub-master/app/node_modules/next/dist/compiled/semver/package.json.
+    at Object.read (node:internal/modules/package_json_reader:113:33)
+    at _readPackage (node:internal/modules/cjs/loader:468:55)
+    at tryPackage (node:internal/modules/cjs/loader:488:36)
+    at Function._findPath (node:internal/modules/cjs/loader:764:18)
+    at Function.<anonymous> (node:internal/modules/cjs/loader:1369:27)
+    at /Users/julesruberti/Documents/all-in-one-business-hub-master/app/node_modules/next/dist/server/require-hook.js:57:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+    at Function._load (node:internal/modules/cjs/loader:1192:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14) {
+  code: 'ERR_INVALID_PACKAGE_CONFIG'
+}
+
+Node.js v22.20.0
