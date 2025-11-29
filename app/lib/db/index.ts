@@ -41,16 +41,10 @@ async function connectToDatabase() {
 
   const uri = getMongoUri()
   const client = new MongoClient(uri, {
-    serverSelectionTimeoutMS: 30000,
-    connectTimeoutMS: 30000,
-    socketTimeoutMS: 30000,
+    serverSelectionTimeoutMS: 5000,
+    connectTimeoutMS: 10000,
     maxPoolSize: 10,
-    minPoolSize: 5,
-    serverApi: {
-      version: ServerApiVersion.v1,
-      strict: true,
-      deprecationErrors: true
-    }
+    minPoolSize: 1,
   })
 
   await client.connect()
