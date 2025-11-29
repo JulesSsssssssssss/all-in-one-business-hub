@@ -123,10 +123,12 @@ export default function VentesPage() {
             <Download className="h-4 w-4 mr-2" />
             Exporter CSV
           </Button>
-          <Button className="bg-primary hover:bg-kaki-7 text-white">
-            <Plus className="h-5 w-5 mr-2" />
-            Ajouter une vente
-          </Button>
+          <Link href="/dashboard/ventes/new">
+            <Button className="bg-primary hover:bg-kaki-7 text-white">
+              <Plus className="h-5 w-5 mr-2" />
+              Ajouter une vente
+            </Button>
+          </Link>
         </div>
       </div>
 
