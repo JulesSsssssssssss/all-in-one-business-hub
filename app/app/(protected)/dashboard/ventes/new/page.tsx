@@ -150,7 +150,11 @@ export default function NewSalePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validate()) return;
+    if (!validate()) {
+      console.log('❌ Validation échouée:', errors);
+      setErrors((prev) => ({ ...prev, submit: 'Veuillez remplir tous les champs obligatoires' }));
+      return;
+    }
 
     try {
       // Préparer les données avec conversion des prix
@@ -180,6 +184,7 @@ export default function NewSalePage() {
 
       console.log('📤 Données envoyées:', productData);
       const product = await createProduct(productData);
+      console.log('✅ Vente créée avec succès:', product);
       
       // Rediriger vers la page de la commande ou la liste des ventes
       if (supplierOrderIdFromUrl) {
@@ -187,9 +192,10 @@ export default function NewSalePage() {
       } else {
         router.push('/dashboard/ventes');
       }
-    } catch (err) {
-      console.error('Erreur création vente:', err);
-      setErrors({ submit: 'Erreur lors de la création de la vente' });
+    } catch (err: any) {
+      console.error('❌ Erreur création vente:', err);
+      const errorMessage = err?.message || 'Erreur lors de la création de la vente. Veuillez réessayer.';
+      setErrors({ submit: errorMessage });
     }
   };
 
@@ -210,6 +216,15 @@ export default function NewSalePage() {
       </div>
 
       <form onSubmit={handleSubmit}>
+        {/* Message d'erreur global */}
+        {errors.submit && (
+          <Card className="bg-red-50 border-red-200 mb-6">
+            <CardContent className="p-4">
+              <p className="text-red-600 font-medium">{errors.submit}</p>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Formulaire principal */}
           <div className="lg:col-span-2 space-y-6">
@@ -578,10 +593,6 @@ export default function NewSalePage() {
                 >
                   Annuler
                 </Button>
-
-                {errors.submit && (
-                  <p className="text-sm text-red-500 text-center">{errors.submit}</p>
-                )}
               </CardContent>
             </Card>
           </div>
