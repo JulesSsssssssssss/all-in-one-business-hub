@@ -1,0 +1,74 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String         @id @default(auto()) @map("_id") @db.ObjectId
+  email          String         @unique
+  name           String?
+  password       String
+  hasAcre        Boolean        @default(false) // Si l'utilisateur bénéficie de l'ACRE
+  acreStartDate  DateTime?      // Date de début de l'ACRE
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  supplierOrders SupplierOrder[]
+  products       Product[]
+}
+
+model SupplierOrder {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String    @db.ObjectId
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String    // Ex: "Lot Nike - Alibaba Mars 2025"
+  supplier     String    // Nom du fournisseur
+  purchaseDate DateTime  // Date d'achat
+  totalCost    Float     // Coût total du lot
+  shippingCost Float     @default(0)
+  customsCost  Float     @default(0)
+  otherFees    Float     @default(0)
+  notes        String?   // Notes optionnelles
+  status       String    @default("active") // "active" | "completed"
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  products     Product[]
+
+  @@index([userId])
+}
+
+model Product {
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String         @db.ObjectId
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  supplierOrderId String         @db.ObjectId
+  supplierOrder   SupplierOrder  @relation(fields: [supplierOrderId], references: [id], onDelete: Cascade)
+  name            String         // Nom de l'article
+  size            String?        // Taille (S, M, L, 42, etc.)
+  quantity        Int            @default(1) // Quantité
+  description     String?        // Description
+  photos          String         @default("[]") // JSON array des URLs photos
+  unitCost        Float          // Coût unitaire (prix d'achat)
+  purchaseDate    DateTime       // Date d'achat
+  salePrice       Float          // Prix de vente souhaité
+  soldPrice       Float?         // Prix réel de vente
+  soldTo          String?        // Vendu à (nom acheteur/plateforme)
+  status          String         @default("in_stock") // "in_stock" | "listed" | "sold"
+  condition       String?        // État (neuf, très bon état, bon état, etc.)
+  platform        String?        // Vinted, Leboncoin, eBay, etc.
+  listedDate      DateTime?      // Date de mise en ligne
+  soldDate        DateTime?      // Date de vente
+  boosted         Boolean        @default(false) // Article boosté ou non
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([supplierOrderId])
+  @@index([status])
+}
