@@ -124,7 +124,7 @@ export default function NewSalePage() {
     }
   };
 
-  const validate = (): boolean => {
+  const validate = (): { isValid: boolean; errors: Record<string, string> } => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.supplierOrderId) newErrors.supplierOrderId = 'Commande fournisseur requise';
@@ -144,15 +144,27 @@ export default function NewSalePage() {
     if (!formData.purchaseDate) newErrors.purchaseDate = 'Date d\'achat requise';
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return { isValid: Object.keys(newErrors).length === 0, errors: newErrors };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validate()) {
-      console.log('❌ Validation échouée:', errors);
-      setErrors((prev) => ({ ...prev, submit: 'Veuillez remplir tous les champs obligatoires' }));
+    const validation = validate();
+    if (!validation.isValid) {
+      console.log('❌ Validation échouée. Erreurs:', validation.errors);
+      console.log('📋 Données du formulaire:', formData);
+      
+      // Trouver le premier champ en erreur pour un message plus clair
+      const errorList = Object.entries(validation.errors);
+      const errorMessage = errorList.length > 0
+        ? `Erreur : ${errorList.map(([field, msg]) => msg).join(', ')}`
+        : 'Veuillez remplir tous les champs obligatoires';
+      
+      setErrors({ ...validation.errors, submit: errorMessage });
+      
+      // Scroll vers le haut pour voir l'erreur
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
