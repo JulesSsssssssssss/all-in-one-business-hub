@@ -136,6 +136,11 @@ export default function NewSalePage() {
       newErrors.unitCost = 'Prix d\'achat doit être > 0';
     }
     
+    const salePriceNum = parseFloat(String(formData.salePrice).replace(',', '.'));
+    if (!formData.salePrice || isNaN(salePriceNum) || salePriceNum <= 0) {
+      newErrors.salePrice = 'Prix de vente prévu doit être > 0';
+    }
+    
     if (!formData.purchaseDate) newErrors.purchaseDate = 'Date d\'achat requise';
 
     setErrors(newErrors);
@@ -365,14 +370,20 @@ export default function NewSalePage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="salePrice">Prix de vente prévu</Label>
+                    <Label htmlFor="salePrice">
+                      Prix de vente prévu <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="salePrice"
                       type="text"
                       value={formData.salePrice}
                       onChange={(e) => handleChange('salePrice', e.target.value)}
                       placeholder="15.00 ou 15,00"
+                      className={errors.salePrice ? 'border-red-500' : ''}
                     />
+                    {errors.salePrice && (
+                      <p className="text-sm text-red-500 mt-1">{errors.salePrice}</p>
+                    )}
                   </div>
                 </div>
               </CardContent>
