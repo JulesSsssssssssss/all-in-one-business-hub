@@ -1,0 +1,5 @@
+server
+client
+docs
+*.md
+!README.md
