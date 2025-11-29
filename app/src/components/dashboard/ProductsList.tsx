@@ -45,6 +45,7 @@ export function ProductsList({ filter, title = 'Produits' }: ProductsListProps) 
       problem: { label: 'Problème', className: 'bg-red-100 text-red-800' },
       sold_euros: { label: 'Vendu €€€', className: 'bg-green-100 text-green-800' },
       in_stock: { label: 'En stock', className: 'bg-blue-100 text-blue-800' },
+      in_stock_euros: { label: 'En stock €€€', className: 'bg-blue-100 text-blue-800' },
     }
     const variant = variants[status] || variants.in_stock
     return <Badge className={variant.className}>{variant.label}</Badge>

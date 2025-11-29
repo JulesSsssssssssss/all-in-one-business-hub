@@ -375,7 +375,7 @@ export default function VentesPage() {
                       <td className="py-4 px-4">
                         <Link href={`/dashboard/commandes/${product.supplierOrderId}`}>
                           <Badge className="bg-kaki-2 text-kaki-7 border-kaki-4 hover:bg-kaki-3 cursor-pointer text-xs">
-                            {product.supplierOrder?.name.substring(0, 20)}...
+                            Commande {product.supplierOrderId.substring(0, 8)}
                           </Badge>
                         </Link>
                       </td>
