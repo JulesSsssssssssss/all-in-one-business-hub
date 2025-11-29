@@ -310,7 +310,7 @@ export default function VentesPage() {
                   const profits = calculateProfits(product);
                   
                   return (
-                    <tr key={product.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <tr key={product._id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
                           <div className="flex-shrink-0 w-10 h-10 bg-gray-100 rounded flex items-center justify-center">
