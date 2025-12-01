@@ -40,8 +40,8 @@ export default function DashboardPage() {
 
       // Dernières ventes (les 5 plus récentes)
       const sortedSales = soldProducts.sort((a, b) => {
-        const dateA = new Date(a.saleDate || a.updatedAt || a.createdAt);
-        const dateB = new Date(b.saleDate || b.updatedAt || b.createdAt);
+        const dateA = new Date(a.soldDate || a.updatedAt || a.createdAt);
+        const dateB = new Date(b.soldDate || b.updatedAt || b.createdAt);
         return dateB.getTime() - dateA.getTime();
       });
       setRecentSales(sortedSales.slice(0, 5));
