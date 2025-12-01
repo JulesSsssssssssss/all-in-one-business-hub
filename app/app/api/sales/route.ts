@@ -23,10 +23,11 @@ export async function GET(req: NextRequest) {
     
     // Endpoint stats
     if (endpoint === 'stats') {
-      const [totalProducts, soldProducts, listedProducts] = await Promise.all([
+      const [totalProducts, sold, listed, inStock] = await Promise.all([
         collection.countDocuments({ userId }),
         collection.countDocuments({ userId, status: 'sold' }),
-        collection.countDocuments({ userId, status: 'listed' })
+        collection.countDocuments({ userId, status: 'listed' }),
+        collection.countDocuments({ userId, status: { $in: ['in_stock', 'in_stock_euros', 'to_list'] } })
       ])
 
       const soldItems = await collection
@@ -39,23 +40,27 @@ export async function GET(req: NextRequest) {
       const averageMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100) : 0
 
       return NextResponse.json({
-        totalRevenue,
-        totalProfit,
         totalProducts,
-        soldProducts,
-        listedProducts,
+        inStock,
+        listed,
+        sold,
+        totalRevenue,
+        totalCost,
+        totalProfit,
         averageMargin: Math.round(averageMargin * 100) / 100
       })
     }
     
     // Liste des produits avec filtres
     const status = searchParams.get('status')
+    const supplierOrderId = searchParams.get('supplierOrderId')
     const limit = parseInt(searchParams.get('limit') || '50')
     const page = parseInt(searchParams.get('page') || '1')
     const skip = (page - 1) * limit
 
     const query: any = { userId }
     if (status) query.status = status
+    if (supplierOrderId) query.supplierOrderId = supplierOrderId
 
     const [products, total] = await Promise.all([
       collection.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray(),

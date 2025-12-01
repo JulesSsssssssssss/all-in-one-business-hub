@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, DollarSign, Package, TrendingUp, Edit, Trash2, Plus, Image as ImageIcon } from 'lucide-react';
@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { useSupplierOrders, type SupplierOrder } from '@/hooks/useSupplierOrders';
 import { useSales, type Product } from '@/hooks/useSales';
 
-export default function CommandeDetailPage({ params }: { params: { id: string } }) {
+export default function CommandeDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const { getOrderById, deleteOrder, loading: orderLoading, error: orderError } = useSupplierOrders();
   const { getProductsBySupplierOrder, loading: productsLoading } = useSales();
@@ -19,22 +20,22 @@ export default function CommandeDetailPage({ params }: { params: { id: string } 
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Charger la commande
+        const orderData = await getOrderById(id);
+        setOrder(orderData);
+
+        // Charger les produits de cette commande
+        const productsData = await getProductsBySupplierOrder(id);
+        setProducts(productsData);
+      } catch (err) {
+        console.error('Erreur chargement données:', err);
+      }
+    };
+    
     loadData();
-  }, [params.id]);
-
-  const loadData = async () => {
-    try {
-      // Charger la commande
-      const orderData = await getOrderById(params.id);
-      setOrder(orderData);
-
-      // Charger les produits de cette commande
-      const productsData = await getProductsBySupplierOrder(params.id);
-      setProducts(productsData);
-    } catch (err) {
-      console.error('Erreur chargement données:', err);
-    }
-  };
+  }, [id, getOrderById, getProductsBySupplierOrder]);
 
   const handleDelete = async () => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette commande ?')) {
@@ -42,7 +43,7 @@ export default function CommandeDetailPage({ params }: { params: { id: string } 
     }
 
     try {
-      await deleteOrder(params.id);
+      await deleteOrder(id);
       router.push('/dashboard/commandes');
     } catch (err) {
       console.error('Erreur suppression:', err);
@@ -84,15 +85,28 @@ export default function CommandeDetailPage({ params }: { params: { id: string } 
 
   const getStats = () => {
     const totalItems = products.length;
-    const itemsSold = products.filter(p => p.status === 'sold').length;
-    const itemsListed = products.filter(p => p.status === 'listed').length;
-    const itemsInStock = products.filter(p => p.status === 'in_stock').length;
+    // Produits vendus : 'sold' ou 'sold_euros'
+    const itemsSold = products.filter(p => p.status === 'sold' || p.status === 'sold_euros').length;
+    // Produits en ligne : 'listed' ou 'for_sale'
+    const itemsListed = products.filter(p => p.status === 'listed' || p.status === 'for_sale').length;
+    // Produits en stock : 'in_stock' ou 'in_stock_euros' ou 'to_list'
+    const itemsInStock = products.filter(p => 
+      p.status === 'in_stock' || 
+      p.status === 'in_stock_euros' || 
+      p.status === 'to_list' ||
+      p.status === 'in_delivery'
+    ).length;
+    
+    // Revenus : seulement les produits vendus avec un prix de vente
     const totalRevenue = products
-      .filter(p => p.status === 'sold')
+      .filter(p => p.status === 'sold' || p.status === 'sold_euros')
       .reduce((sum, p) => sum + (p.soldPrice || 0), 0);
+    
+    // Revenus projetés : revenus actuels + prix de vente des produits non vendus
     const projectedRevenue = totalRevenue + products
-      .filter(p => p.status !== 'sold')
-      .reduce((sum, p) => sum + p.salePrice, 0);
+      .filter(p => p.status !== 'sold' && p.status !== 'sold_euros')
+      .reduce((sum, p) => sum + (p.salePrice || 0), 0);
+    
     const currentProfit = totalRevenue - getTotalCost();
     const projectedProfit = projectedRevenue - getTotalCost();
     const breakEvenPoint = getTotalCost() > 0 ? (totalRevenue / getTotalCost()) * 100 : 0;
@@ -127,8 +141,15 @@ export default function CommandeDetailPage({ params }: { params: { id: string } 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       sold: { label: 'Vendu', className: 'bg-green-100 text-green-700 border-green-300' },
+      sold_euros: { label: 'Vendu', className: 'bg-green-100 text-green-700 border-green-300' },
       listed: { label: 'En ligne', className: 'bg-blue-100 text-blue-700 border-blue-300' },
+      for_sale: { label: 'En vente', className: 'bg-blue-100 text-blue-700 border-blue-300' },
       in_stock: { label: 'En stock', className: 'bg-gray-100 text-gray-700 border-gray-300' },
+      in_stock_euros: { label: 'En stock', className: 'bg-gray-100 text-gray-700 border-gray-300' },
+      to_list: { label: 'À lister', className: 'bg-purple-100 text-purple-700 border-purple-300' },
+      in_delivery: { label: 'En livraison', className: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
+      in_progress: { label: 'En cours', className: 'bg-orange-100 text-orange-700 border-orange-300' },
+      problem: { label: 'Problème', className: 'bg-red-100 text-red-700 border-red-300' },
     };
     
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.in_stock;

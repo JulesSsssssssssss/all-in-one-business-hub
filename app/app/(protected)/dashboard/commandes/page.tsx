@@ -8,13 +8,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useSupplierOrders, type SupplierOrder } from '@/hooks/useSupplierOrders';
+import { useSales } from '@/hooks/useSales';
 
 export default function CommandesPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all');
   const [orders, setOrders] = useState<SupplierOrder[]>([]);
+  const [ordersProfitability, setOrdersProfitability] = useState<Record<string, { totalRevenue: number; totalProfit: number; profitMargin: number }>>({});
   
   const { getOrders, loading, error } = useSupplierOrders();
+  const { getProducts } = useSales();
 
   // Charger les commandes au montage du composant
   useEffect(() => {
@@ -26,9 +29,44 @@ export default function CommandesPage() {
       const filter = statusFilter === 'all' ? undefined : statusFilter;
       const data = await getOrders(filter);
       setOrders(Array.isArray(data) ? data : []);
+      
+      // Charger la rentabilité pour chaque commande
+      await loadProfitability(data);
     } catch (err) {
       console.error('Erreur chargement commandes:', err);
       setOrders([]);
+    }
+  };
+
+  const loadProfitability = async (ordersList: SupplierOrder[]) => {
+    try {
+      const profitabilityData: Record<string, { totalRevenue: number; totalProfit: number; profitMargin: number }> = {};
+      
+      for (const order of ordersList) {
+        const salesResponse = await getProducts({ supplierOrderId: order._id });
+        const sales = salesResponse.products || [];
+        
+        // Calculer le revenu total des ventes réelles (produits vendus)
+        const totalRevenue = sales
+          .filter(sale => sale.status === 'sold' || sale.status === 'sold_euros')
+          .reduce((sum, sale) => sum + (sale.soldPrice || 0), 0);
+        
+        const totalCost = getTotalCost(order);
+        const totalProfit = totalRevenue - totalCost;
+        
+        // Calculer le break-even point (pourcentage du coût récupéré)
+        const breakEvenPoint = totalCost > 0 ? (totalRevenue / totalCost) * 100 : 0;
+        
+        profitabilityData[order._id] = {
+          totalRevenue,
+          totalProfit,
+          profitMargin: Math.max(0, Math.min(100, breakEvenPoint))
+        };
+      }
+      
+      setOrdersProfitability(profitabilityData);
+    } catch (err) {
+      console.error('Erreur chargement rentabilité:', err);
     }
   };
 
@@ -127,34 +165,34 @@ export default function CommandesPage() {
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <Input
                 type="text"
                 placeholder="Rechercher une commande..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-white border-gray-300"
+                className="pl-12 h-12 text-base bg-white border-gray-300"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <Button
                 variant={statusFilter === 'all' ? 'default' : 'outline'}
                 onClick={() => setStatusFilter('all')}
-                className={statusFilter === 'all' ? 'bg-primary hover:bg-kaki-7' : 'border-gray-300'}
+                className={`h-12 px-6 text-base ${statusFilter === 'all' ? 'bg-primary hover:bg-kaki-7' : 'border-gray-300'}`}
               >
                 Toutes
               </Button>
               <Button
                 variant={statusFilter === 'active' ? 'default' : 'outline'}
                 onClick={() => setStatusFilter('active')}
-                className={statusFilter === 'active' ? 'bg-primary hover:bg-kaki-7' : 'border-gray-300'}
+                className={`h-12 px-6 text-base ${statusFilter === 'active' ? 'bg-primary hover:bg-kaki-7' : 'border-gray-300'}`}
               >
                 Actives
               </Button>
               <Button
                 variant={statusFilter === 'completed' ? 'default' : 'outline'}
                 onClick={() => setStatusFilter('completed')}
-                className={statusFilter === 'completed' ? 'bg-primary hover:bg-kaki-7' : 'border-gray-300'}
+                className={`h-12 px-6 text-base ${statusFilter === 'completed' ? 'bg-primary hover:bg-kaki-7' : 'border-gray-300'}`}
               >
                 Terminées
               </Button>
@@ -232,6 +270,40 @@ export default function CommandesPage() {
                       <p className="text-sm text-gray-600 mt-1">Coût total</p>
                     </div>
                   </div>
+
+                  {/* Profitability Progress Bar */}
+                  {ordersProfitability[order._id] && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4 text-gray-600" />
+                          <span className="text-sm font-medium text-gray-700">Rentabilité</span>
+                        </div>
+                        <div className="text-right">
+                          <span className={`text-sm font-bold ${ordersProfitability[order._id].totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatCurrency(ordersProfitability[order._id].totalProfit)}
+                          </span>
+                          <span className="text-xs text-gray-500 ml-2">
+                            ({ordersProfitability[order._id].profitMargin.toFixed(1)}%)
+                          </span>
+                        </div>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            ordersProfitability[order._id].profitMargin >= 50 ? 'bg-green-500' :
+                            ordersProfitability[order._id].profitMargin >= 25 ? 'bg-yellow-500' :
+                            'bg-red-500'
+                          }`}
+                          style={{ width: `${Math.min(100, Math.max(0, ordersProfitability[order._id].profitMargin))}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between mt-1 text-xs text-gray-500">
+                        <span>Investi: {formatCurrency(getTotalCost(order))}</span>
+                        <span>Revenus: {formatCurrency(ordersProfitability[order._id].totalRevenue)}</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Cost Breakdown */}
                   <div className="mt-4 pt-4 border-t border-gray-200 grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">

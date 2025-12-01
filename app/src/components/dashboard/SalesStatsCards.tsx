@@ -3,14 +3,25 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useSales } from '@/hooks/useSales'
-import type { SaleStats } from '@/types/sale'
+import type { Product } from '@/types/sale'
+
+interface Stats {
+  totalProducts: number
+  inStock: number
+  listed: number
+  sold: number
+  totalRevenue: number
+  totalCost: number
+  totalProfit: number
+  averageMargin: number
+}
 
 /**
  * Composant affichant les statistiques de vente
  */
 export function SalesStatsCards() {
-  const { getSaleStats, loading, error } = useSales()
-  const [stats, setStats] = useState<SaleStats | null>(null)
+  const { getProducts, loading, error } = useSales()
+  const [stats, setStats] = useState<Stats | null>(null)
 
   useEffect(() => {
     loadStats()
@@ -18,8 +29,63 @@ export function SalesStatsCards() {
 
   const loadStats = async () => {
     try {
-      const data = await getSaleStats()
-      setStats(data)
+      // Charger tous les produits
+      const response = await getProducts({})
+      const products = response.products || []
+      
+      console.log('Stats - Total products:', products.length)
+
+      // Calculer les statistiques
+      const inStockProducts = products.filter(p => 
+        p.status === 'in_stock' || 
+        p.status === 'in_stock_euros' || 
+        p.status === 'to_list' ||
+        p.status === 'in_delivery'
+      )
+      
+      const listedProducts = products.filter(p => 
+        p.status === 'listed' || 
+        p.status === 'for_sale'
+      )
+      
+      const soldProducts = products.filter(p => 
+        p.status === 'sold' || 
+        p.status === 'sold_euros'
+      )
+
+      console.log('Stats - Sold products:', soldProducts.length)
+
+      // Calculer les revenus et coûts
+      const totalRevenue = soldProducts.reduce((sum, p) => sum + (p.soldPrice || 0), 0)
+      const totalCost = soldProducts.reduce((sum, p) => sum + (p.unitCost || 0), 0)
+      const totalProfit = totalRevenue - totalCost
+
+      // Calculer la marge moyenne (uniquement sur les produits vendus avec un coût)
+      const profitableProducts = soldProducts.filter(p => p.soldPrice && p.unitCost)
+      const averageMargin = profitableProducts.length > 0
+        ? profitableProducts.reduce((sum, p) => {
+            const margin = ((p.soldPrice! - p.unitCost) / p.soldPrice!) * 100
+            return sum + margin
+          }, 0) / profitableProducts.length
+        : 0
+
+      console.log('Stats calculated:', {
+        totalRevenue,
+        totalCost,
+        totalProfit,
+        averageMargin
+      })
+
+      setStats({
+        totalProducts: products.length,
+        inStock: inStockProducts.length,
+        listed: listedProducts.length,
+        sold: soldProducts.length,
+        totalRevenue,
+        totalCost,
+        totalProfit,
+        averageMargin: Math.max(0, averageMargin)
+      })
     } catch (err) {
       console.error('Erreur chargement stats:', err)
     }

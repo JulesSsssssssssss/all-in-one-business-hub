@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, use } from 'react';
+import { use, useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Package, DollarSign, Image as ImageIcon, TrendingUp, Calendar } from 'lucide-react';
@@ -81,52 +81,56 @@ export default function EditSalePage({ params }: { params: Promise<{ id: string 
   }, [formData.soldPrice, totalCost]);
 
   useEffect(() => {
-    loadData();
-  }, [id]);
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [productData, ordersData] = await Promise.all([
+          getProductById(id),
+          getOrders()
+        ]);
 
-  const loadData = async () => {
-    try {
-      const [productData, ordersData] = await Promise.all([
-        getProductById(id),
-        getOrders()
-      ]);
+        console.log('Product data:', productData);
+        console.log('Orders data:', ordersData);
 
-      setOrders(Array.isArray(ordersData) ? ordersData : []);
+        setOrders(Array.isArray(ordersData) ? ordersData : []);
 
-      if (productData) {
-        const photos = Array.isArray(productData.photos)
-          ? productData.photos
-          : typeof productData.photos === 'string'
-            ? JSON.parse(productData.photos || '[]')
-            : [];
+        if (productData) {
+          const photos = Array.isArray(productData.photos)
+            ? productData.photos
+            : typeof productData.photos === 'string'
+              ? JSON.parse(productData.photos || '[]')
+              : [];
 
-        setFormData({
-          supplierOrderId: typeof productData.supplierOrderId === 'object' 
-            ? (productData.supplierOrderId as any)?._id || ''
-            : productData.supplierOrderId || '',
-          name: productData.name || '',
-          brand: productData.brand || '',
-          size: productData.size || '',
-          quantity: productData.quantity || 1,
-          description: productData.description || '',
-          photos: photos,
-          url: productData.url || '',
-          unitCost: String(productData.unitCost || ''),
-          purchaseDate: productData.purchaseDate ? new Date(productData.purchaseDate).toISOString().split('T')[0] : '',
-          salePrice: String(productData.salePrice || ''),
-          soldPrice: String(productData.soldPrice || ''),
-          soldDate: productData.soldDate ? new Date(productData.soldDate).toISOString().split('T')[0] : '',
-          status: productData.status || 'sold_euros',
-          condition: productData.condition || '',
-          platform: productData.platform || '',
-        });
+          setFormData({
+            supplierOrderId: typeof productData.supplierOrderId === 'object' 
+              ? (productData.supplierOrderId as any)?._id || ''
+              : productData.supplierOrderId || '',
+            name: productData.name || '',
+            brand: productData.brand || '',
+            size: productData.size || '',
+            quantity: productData.quantity || 1,
+            description: productData.description || '',
+            photos: photos,
+            url: productData.url || '',
+            unitCost: String(productData.unitCost || ''),
+            purchaseDate: productData.purchaseDate ? new Date(productData.purchaseDate).toISOString().split('T')[0] : '',
+            salePrice: String(productData.salePrice || ''),
+            soldPrice: String(productData.soldPrice || ''),
+            soldDate: productData.soldDate ? new Date(productData.soldDate).toISOString().split('T')[0] : '',
+            status: productData.status || 'sold_euros',
+            condition: productData.condition || '',
+            platform: productData.platform || '',
+          });
+        }
+      } catch (err) {
+        console.error('Erreur chargement:', err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('Erreur chargement:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    
+    loadData();
+  }, [id, getProductById, getOrders]);
 
   const handleChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

@@ -6,7 +6,7 @@ import { ObjectId } from 'mongodb'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Vérifier l'authentification
@@ -18,7 +18,7 @@ export async function GET(
     }
 
     const userId = session.user.id
-    const { id } = params
+    const { id } = await params
 
     // Validation de l'ID
     if (!ObjectId.isValid(id)) {
@@ -51,7 +51,7 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Vérifier l'authentification
@@ -63,7 +63,7 @@ export async function PUT(
     }
 
     const userId = session.user.id
-    const { id } = params
+    const { id } = await params
     const body = await req.json()
 
     // Validation de l'ID
@@ -124,7 +124,7 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Vérifier l'authentification
@@ -136,7 +136,7 @@ export async function DELETE(
     }
 
     const userId = session.user.id
-    const { id } = params
+    const { id } = await params
 
     // Validation de l'ID
     if (!ObjectId.isValid(id)) {

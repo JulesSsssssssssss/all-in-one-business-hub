@@ -203,8 +203,8 @@ export function useSales() {
    * Obtenir les statistiques de vente
    */
   const getSaleStats = useCallback(async (): Promise<SaleStats> => {
-    const response = await apiCall<{ stats: SaleStats }>('/sales/stats')
-    return response.stats
+    const response = await apiCall<SaleStats>('/sales?endpoint=stats')
+    return response
   }, [apiCall])
 
   /**
@@ -212,12 +212,10 @@ export function useSales() {
    */
   const getProductsBySupplierOrder = useCallback(
     async (supplierOrderId: string): Promise<Product[]> => {
-      const response = await apiCall<{ products: Product[] }>(
-        `/sales/supplier-orders/${supplierOrderId}/products`
-      )
+      const response = await getProducts({ supplierOrderId, limit: 100 })
       return response.products
     },
-    [apiCall]
+    [getProducts]
   )
 
   return {

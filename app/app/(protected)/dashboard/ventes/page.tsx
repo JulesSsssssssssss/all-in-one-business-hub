@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useSales } from '@/hooks/useSales';
+import { useSupplierOrders } from '@/hooks/useSupplierOrders';
 import type { Product } from '@/types/sale';
 
 export default function VentesPage() {
@@ -27,25 +28,39 @@ export default function VentesPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'in_stock_euros' | 'listed' | 'sold_euros'>('all');
   const [orderFilter, setOrderFilter] = useState<string>('all');
   const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [userHasAcre, setUserHasAcre] = useState(false);
   
   const { getProducts, loading, error } = useSales();
-  
-  // Paramètre utilisateur pour l'ACRE (à récupérer depuis l'API)
-  const userHasAcre = true; // TODO: Récupérer depuis le profil utilisateur
+  const { getOrders } = useSupplierOrders();
 
-  // Charger les produits au montage
+  // Charger les produits, commandes et paramètres utilisateur au montage
   useEffect(() => {
-    const loadProducts = async () => {
+    const loadData = async () => {
       try {
-        const response = await getProducts();
-        setProducts(Array.isArray(response.products) ? response.products : []);
+        const [productsResponse, ordersData, settingsResponse] = await Promise.all([
+          getProducts(),
+          getOrders(),
+          fetch('/api/user-settings').then(res => res.ok ? res.json() : { hasAcre: false })
+        ]);
+        setProducts(Array.isArray(productsResponse.products) ? productsResponse.products : []);
+        setOrders(Array.isArray(ordersData) ? ordersData : []);
+        setUserHasAcre(settingsResponse.hasAcre || false);
       } catch (err) {
-        console.error('Erreur lors du chargement des produits:', err);
+        console.error('Erreur lors du chargement des données:', err);
         setProducts([]);
+        setOrders([]);
+        setUserHasAcre(false);
       }
     };
-    loadProducts();
-  }, [getProducts]);
+    loadData();
+  }, [getProducts, getOrders]);
+  
+  // Fonction pour obtenir le nom d'une commande
+  const getOrderName = (orderId: string) => {
+    const order = orders.find(o => o._id === orderId);
+    return order?.name || `Commande ${orderId.substring(0, 8)}`;
+  };
 
   // Calcul des bénéfices et impôts (basé sur le paramètre utilisateur)
   const calculateProfits = (product: Product) => {
@@ -53,8 +68,8 @@ export default function VentesPage() {
     const cost = product.totalCost || (product.unitCost * product.quantity);
     const grossProfit = saleAmount - cost;
     
-    // Taux d'imposition : 11% avec ACRE, 22% sans ACRE
-    const taxRate = userHasAcre ? 0.11 : 0.22;
+    // Taux d'imposition : 7% avec ACRE, 13% sans ACRE
+    const taxRate = userHasAcre ? 0.07 : 0.13;
     const taxes = saleAmount * taxRate;
     const netProfit = grossProfit - taxes;
     
@@ -70,6 +85,8 @@ export default function VentesPage() {
     totalSales: products.filter(p => p.status === 'sold_euros').length,
     totalRevenue: products.filter(p => p.status === 'sold_euros').reduce((sum: number, p: any) => sum + (p.soldPrice || 0), 0),
     totalProfit: products.filter(p => p.status === 'sold_euros').reduce((sum: number, p: any) => sum + calculateProfits(p).netProfit, 0),
+    totalGrossProfit: products.filter(p => p.status === 'sold_euros').reduce((sum: number, p: any) => sum + calculateProfits(p).grossProfit, 0),
+    totalTaxes: products.filter(p => p.status === 'sold_euros').reduce((sum: number, p: any) => sum + calculateProfits(p).taxes, 0),
     inStock: products.filter(p => p.status === 'in_stock_euros').length,
     listed: products.filter(p => p.status === 'listed').length,
   };
@@ -148,56 +165,23 @@ export default function VentesPage() {
         </Card>
         <Card className="bg-white border-gray-200">
           <CardContent className="p-4">
+            <p className="text-xs text-gray-600 font-medium">Bénéfice brut</p>
+            <p className="text-2xl font-bold text-green-600 mt-1">{formatCurrency(stats.totalGrossProfit)}</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-white border-gray-200">
+          <CardContent className="p-4">
             <p className="text-xs text-gray-600 font-medium">Bénéfice net</p>
             <p className="text-2xl font-bold text-green-600 mt-1">{formatCurrency(stats.totalProfit)}</p>
           </CardContent>
         </Card>
         <Card className="bg-white border-gray-200">
           <CardContent className="p-4">
-            <p className="text-xs text-gray-600 font-medium">En ligne</p>
-            <p className="text-2xl font-bold text-blue-600 mt-1">{stats.listed}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white border-gray-200">
-          <CardContent className="p-4">
-            <p className="text-xs text-gray-600 font-medium">En stock</p>
-            <p className="text-2xl font-bold text-gray-600 mt-1">{stats.inStock}</p>
+            <p className="text-xs text-gray-600 font-medium">Impôts dus</p>
+            <p className="text-2xl font-bold text-red-600 mt-1">{formatCurrency(stats.totalTaxes)}</p>
           </CardContent>
         </Card>
       </div>
-
-      {/* Statut ACRE */}
-      <Card className={`border-2 ${userHasAcre ? 'bg-green-50 border-green-300' : 'bg-orange-50 border-orange-300'}`}>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {userHasAcre ? (
-                <div className="h-10 w-10 bg-green-500 rounded-full flex items-center justify-center">
-                  <Check className="h-6 w-6 text-white" />
-                </div>
-              ) : (
-                <div className="h-10 w-10 bg-orange-500 rounded-full flex items-center justify-center">
-                  <X className="h-6 w-6 text-white" />
-                </div>
-              )}
-              <div>
-                <p className="font-bold text-gray-900">
-                  {userHasAcre ? '✅ ACRE Active' : '⚠️ ACRE Inactive'}
-                </p>
-                <p className="text-sm text-gray-700">
-                  Taux d'imposition appliqué : <span className="font-bold">{userHasAcre ? '6.6%' : '13.2%'}</span>
-                </p>
-              </div>
-            </div>
-            <Link href="/dashboard/parametres">
-              <Button variant="outline" size="sm" className="border-gray-300">
-                <Edit className="h-4 w-4 mr-2" />
-                Modifier
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Filtres */}
       <Card className="bg-white border-gray-200">
@@ -338,8 +322,8 @@ export default function VentesPage() {
                         )}
                       </td>
                       <td className="py-4 px-4 text-right">
-                        {product.soldTo ? (
-                          <span className="font-bold text-lg text-green-600">{product.soldTo}€</span>
+                        {product.soldPrice ? (
+                          <span className="font-bold text-lg text-green-600">{formatCurrency(product.soldPrice)}</span>
                         ) : (
                           <span className="text-gray-400">-</span>
                         )}
@@ -371,24 +355,28 @@ export default function VentesPage() {
                       <td className="py-4 px-4 text-right">
                         <div className="flex flex-col items-end">
                           <span className="text-sm font-semibold text-red-600">{formatCurrency(profits.taxes)}</span>
-                          <span className="text-xs text-gray-500">{userHasAcre ? '6.6%' : '13.2%'}</span>
+                          <span className="text-xs text-gray-500">{userHasAcre ? '7%' : '13%'}</span>
                         </div>
                       </td>
                       <td className="py-4 px-4">
                         <Link href={`/dashboard/commandes/${product.supplierOrderId}`}>
                           <Badge className="bg-kaki-2 text-kaki-7 border-kaki-4 hover:bg-kaki-3 cursor-pointer text-xs">
-                            Commande {product.supplierOrderId.substring(0, 8)}
+                            {getOrderName(product.supplierOrderId)}
                           </Badge>
                         </Link>
                       </td>
                       <td className="py-4 px-4">
                         <div className="flex items-center justify-center gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-kaki-7">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-blue-600">
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          <Link href={`/dashboard/ventes/${product._id}`}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-kaki-7">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                          <Link href={`/dashboard/ventes/${product._id}/edit`}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-blue-600">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </Link>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-red-600">
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -419,7 +407,7 @@ export default function VentesPage() {
             </div>
             <div>
               <p className="font-semibold mb-1">Impôts</p>
-              <p className="text-xs">Calculés automatiquement selon votre statut ACRE (6.6% ou 13.2%)</p>
+              <p className="text-xs">Calculés automatiquement selon votre statut ACRE (7% ou 13%)</p>
             </div>
             <div>
               <p className="font-semibold mb-1">Bénéfice Net</p>
