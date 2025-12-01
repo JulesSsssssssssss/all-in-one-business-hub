@@ -250,7 +250,7 @@ export default function DashboardPage() {
                         </Badge>
                         <span className="text-xs text-muted-foreground">
                           <Calendar className="h-3 w-3 inline mr-1" />
-                          {formatDate(sale.saleDate || sale.createdAt)}
+                          {formatDate(sale.soldDate || sale.createdAt)}
                         </span>
                       </div>
                     </div>
